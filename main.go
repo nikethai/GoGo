@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"main/db"
+	"main/router"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -10,10 +12,12 @@ import (
 )
 
 func main() {
-	mongoClient = getMongoEnv()
-	mongoDatabase = mongoClient.Database("surveyDB")
+	// look weird but haven't figured a better way yet
+	db.MongoClient = db.GetMongoEnv()
+	db.MongoDatabase = db.MongoClient.Database("surveyDB")
 
 	r := chi.NewRouter()
+	qRouter := router.NewQRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -23,13 +27,12 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
 	})
-	r.Mount("/news", NewsRouter{}.Routes())
-	r.Mount("/questions", QuestionRouter{}.Routes())
+	r.Mount("/questions", qRouter.Routes())
 	http.ListenAndServe(":3001", r)
 
 	// use when about to end the app
 	defer func() {
-		if err := mongoClient.Disconnect(context.TODO()); err != nil {
+		if err := db.MongoClient.Disconnect(context.TODO()); err != nil {
 			log.Fatal(err)
 		}
 	}()
