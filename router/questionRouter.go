@@ -20,7 +20,7 @@ type QuestionRouter struct {
 // init collection
 func NewQRouter() *QuestionRouter {
 	return &QuestionRouter{
-		questionCollection: db.MongoDatabase.Collection("questions"),
+		questionCollection: db.MongoDatabase.Collection("question"),
 	}
 }
 

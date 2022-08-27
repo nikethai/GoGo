@@ -18,6 +18,7 @@ func main() {
 
 	r := chi.NewRouter()
 	qRouter := router.NewQRouter()
+	authRouter := router.NewAuthRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -28,6 +29,8 @@ func main() {
 		w.Write([]byte("welcome"))
 	})
 	r.Mount("/questions", qRouter.Routes())
+	r.Mount("/auth", authRouter.Routes())
+
 	http.ListenAndServe(":3001", r)
 
 	// use when about to end the app
