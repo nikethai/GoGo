@@ -19,6 +19,7 @@ func main() {
 	r := chi.NewRouter()
 	qRouter := router.NewQRouter()
 	authRouter := router.NewAuthRouter()
+	roleRouter := router.NewRoleRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -30,6 +31,7 @@ func main() {
 	})
 	r.Mount("/questions", qRouter.Routes())
 	r.Mount("/auth", authRouter.Routes())
+	r.Mount("/role", roleRouter.Routes())
 
 	http.ListenAndServe(":3001", r)
 

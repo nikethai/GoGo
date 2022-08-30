@@ -28,7 +28,7 @@ func (as *AuthService) Login(username string, password string) (*authModel.Accou
 		return nil, err
 	}
 	if account.Password != password {
-		return nil, errors.New("Incorrect Password")
+		return nil, errors.New("incorrect password")
 	}
 	return &account, nil
 }
