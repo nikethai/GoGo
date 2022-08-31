@@ -6,18 +6,19 @@ import (
 	"main/db"
 	"main/model/authModel"
 
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type AuthService struct {
 	accountCollection *mongo.Collection
+	roleService       *RoleService
 }
 
 func NewAuthService() *AuthService {
 	return &AuthService{
 		accountCollection: db.MongoDatabase.Collection("account"),
+		roleService:       NewRoleService(),
 	}
 }
 
@@ -34,17 +35,20 @@ func (as *AuthService) Login(username string, password string) (*authModel.Accou
 }
 
 func (as *AuthService) Register(username string, password string, roles []authModel.Role) (*mongo.InsertOneResult, error) {
-	newUuid, err := uuid.NewRandom()
+	var rolesList []authModel.Role
 
-	if err != nil {
-		return nil, err
+	for _, role := range roles {
+		role, err := as.roleService.GetRoleByName(role.Name)
+		if err != nil {
+			return nil, err
+		}
+		rolesList = append(rolesList, *role)
 	}
 
 	account := authModel.Account{
-		Uuid:     newUuid.String(),
 		Username: username,
 		Password: password,
-		Role:     roles,
+		Role:     rolesList,
 	}
 
 	rs, err := as.accountCollection.InsertOne(context.TODO(), account)

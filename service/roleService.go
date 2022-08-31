@@ -31,6 +31,13 @@ func (as *RoleService) GetRole(roleId string) (*authModel.Role, error) {
 	return &role, er
 }
 
+func (as *RoleService) GetRoleByName(roleName string) (*authModel.Role, error) {
+	var role authModel.Role
+	filter := bson.M{"name": roleName}
+	er := as.roleCollection.FindOne(context.TODO(), filter).Decode(&role)
+	return &role, er
+}
+
 func (as *RoleService) NewRole(roleName string) (*mongo.InsertOneResult, error) {
 	role := authModel.Role{
 		Name: roleName,
