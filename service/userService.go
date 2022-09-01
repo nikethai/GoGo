@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"main/db"
 	"main/model"
+	"main/model/authModel"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,8 +22,9 @@ func NewUserService() *UserService {
 	}
 }
 
-func (us *UserService) GetUserByID(uid string) (*model.User, error) {
-	var user model.User
+func (us *UserService) GetUserByID(uid string) (*authModel.Account, error) {
+	// var user model.UserResponse
+	var user authModel.Account
 	id, err := primitive.ObjectIDFromHex(uid)
 
 	if err != nil {
@@ -32,19 +35,23 @@ func (us *UserService) GetUserByID(uid string) (*model.User, error) {
 		"_id": id,
 	}}
 	aggLookup := bson.M{"$lookup": bson.M{
-		"from":         "account", // collection name in db
-		"localField":   "_id",     // field name of children document
-		"foreignField": "_id",     // field name of parent document
-		"as":           "account", // new field name in result
+		"from":         "account",   // collection name in db
+		"localField":   "accountId", // field name of children document
+		"foreignField": "_id",       // field name of parent document
+		"as":           "account",   // new field name in result
 	}}
 
-	cursor, err := us.userCollection.Aggregate(context.TODO(), []bson.M{aggSearch, aggLookup})
+	// to remove the array of account field
+	aggUnwind := bson.M{"$unwind": "$account"}
+
+	cursor, err := us.userCollection.Aggregate(context.TODO(), []bson.M{aggSearch, aggLookup, aggUnwind})
 
 	if err != nil {
 		return nil, err
 	}
 
 	if cursor.Next(context.TODO()) {
+		fmt.Println(cursor.Current.Elements())
 		err := cursor.Decode(&user)
 		if err != nil {
 			return nil, err
