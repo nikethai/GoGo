@@ -20,6 +20,7 @@ func main() {
 	qRouter := router.NewQRouter()
 	authRouter := router.NewAuthRouter()
 	roleRouter := router.NewRoleRouter()
+	userRouter := router.NewUserRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -31,7 +32,8 @@ func main() {
 	})
 	r.Mount("/questions", qRouter.Routes())
 	r.Mount("/auth", authRouter.Routes())
-	r.Mount("/role", roleRouter.Routes())
+	r.Mount("/roles", roleRouter.Routes())
+	r.Mount("/users", userRouter.Routes())
 
 	http.ListenAndServe(":3001", r)
 

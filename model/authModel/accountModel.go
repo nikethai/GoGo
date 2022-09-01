@@ -22,7 +22,6 @@ type AccountRegister struct {
 
 type AccountResponse struct {
 	ID       string `json:"id" `
-	Uuid     string `json:"uuid"`
 	Username string `json:"username"`
 	Roles    []Role `json:"roles"`
 }
