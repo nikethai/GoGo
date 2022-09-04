@@ -21,14 +21,14 @@ func NewUserRouter() *UserRouter {
 
 func (ur *UserRouter) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/{uid}", ur.GetUserByID)
-	r.Post("/", ur.NewUser)
+	r.Get("/{uid}", ur.getUserByID)
+	r.Post("/", ur.newUser)
 	return r
 }
 
-func (ur *UserRouter) GetUserByID(w http.ResponseWriter, r *http.Request) {
+func (ur *UserRouter) getUserByID(w http.ResponseWriter, r *http.Request) {
 	uid := chi.URLParam(r, "uid")
-	user, err := ur.UserService.GetUserByID(uid)
+	user, err := ur.UserService.GetUserByID(uid, false)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -38,7 +38,7 @@ func (ur *UserRouter) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func (ur *UserRouter) NewUser(w http.ResponseWriter, r *http.Request) {
+func (ur *UserRouter) newUser(w http.ResponseWriter, r *http.Request) {
 	var user model.UserRequest
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {

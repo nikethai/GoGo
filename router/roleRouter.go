@@ -21,12 +21,12 @@ func NewRoleRouter() *RoleRouter {
 
 func (ar *RoleRouter) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", ar.NewRole)
-	r.Get("/{roleId}", ar.GetRole)
+	r.Post("/", ar.newRole)
+	r.Get("/{roleId}", ar.getRole)
 	return r
 }
 
-func (ar *RoleRouter) GetRole(w http.ResponseWriter, r *http.Request) {
+func (ar *RoleRouter) getRole(w http.ResponseWriter, r *http.Request) {
 	roleReq := chi.URLParam(r, "roleId")
 	role, err := ar.roleService.GetRole(roleReq)
 	if err != nil {
@@ -38,7 +38,7 @@ func (ar *RoleRouter) GetRole(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(role)
 }
 
-func (ar *RoleRouter) NewRole(w http.ResponseWriter, r *http.Request) {
+func (ar *RoleRouter) newRole(w http.ResponseWriter, r *http.Request) {
 	var role model.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {

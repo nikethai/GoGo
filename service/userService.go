@@ -23,17 +23,25 @@ func NewUserService() *UserService {
 	}
 }
 
-func (us *UserService) GetUserByID(uid string) (*model.UserResponse, error) {
+func (us *UserService) GetUserByID(uid string, isAccountId bool) (*model.UserResponse, error) {
 	var user model.UserResponse
+	var aggSearch bson.M
+
 	id, err := primitive.ObjectIDFromHex(uid)
 
 	if err != nil {
 		return nil, err
 	}
 
-	aggSearch := bson.M{"$match": bson.M{
+	aggSearch = bson.M{"$match": bson.M{
 		"_id": id,
 	}}
+	if isAccountId {
+		aggSearch = bson.M{"$match": bson.M{
+			"accountId": id,
+		}}
+	}
+
 	aggLookup := bson.M{"$lookup": bson.M{
 		"from":         "account",   // collection name in db
 		"localField":   "accountId", // field name of children document
@@ -56,9 +64,10 @@ func (us *UserService) GetUserByID(uid string) (*model.UserResponse, error) {
 		if err != nil {
 			return nil, err
 		}
+		return &user, nil
 	}
 
-	return &user, nil
+	return nil, mongo.ErrNoDocuments
 }
 
 func (us *UserService) NewUser(reqUser *model.UserRequest, accountId primitive.ObjectID) (*mongo.InsertOneResult, error) {

@@ -19,16 +19,16 @@ type User struct {
 }
 
 type UserResponse struct {
-	ID        primitive.ObjectID `json:"id," bson:"_id,omitempty"`
-	AccountId primitive.ObjectID `json:"accountId," bson:"accountId,omitempty"`
-	Fullname  string             `json:"fullName" bson:"fullName"`
-	DOB       string             `json:"dob" bson:"dob"`
-	Email     string             `json:"email" bson:"email"`
-	Phone     string             `json:"phone" bson:"phone"`
-	Address   string             `json:"address" bson:"address,omitempty"`
-	Avatar    string             `json:"avatar" bson:"avatar,omitempty"`
-	Status    string             `json:"status" bson:"status"`
-	// Account   AccountResponse    `json:"account" bson:"account"`
+	ID primitive.ObjectID `json:"id," bson:"_id,omitempty"`
+	// AccountId primitive.ObjectID `json:"accountId," bson:"accountId,omitempty"`
+	Fullname string          `json:"fullName" bson:"fullName"`
+	DOB      string          `json:"dob" bson:"dob"`
+	Email    string          `json:"email" bson:"email"`
+	Phone    string          `json:"phone" bson:"phone"`
+	Address  string          `json:"address" bson:"address,omitempty"`
+	Avatar   string          `json:"avatar" bson:"avatar,omitempty"`
+	Status   string          `json:"status" bson:"status"`
+	Account  AccountResponse `json:"account" bson:"account"`
 }
 
 type UserRequest struct {
