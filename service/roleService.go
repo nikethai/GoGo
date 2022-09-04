@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"main/db"
-	"main/model/authModel"
+	"main/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,8 +20,8 @@ func NewRoleService() *RoleService {
 	}
 }
 
-func (as *RoleService) GetRole(roleId string) (*authModel.Role, error) {
-	var role authModel.Role
+func (as *RoleService) GetRole(roleId string) (*model.Role, error) {
+	var role model.Role
 	objId, err := primitive.ObjectIDFromHex(roleId)
 	if err != nil {
 		return nil, err
@@ -31,15 +31,15 @@ func (as *RoleService) GetRole(roleId string) (*authModel.Role, error) {
 	return &role, er
 }
 
-func (as *RoleService) GetRoleByName(roleName string) (*authModel.Role, error) {
-	var role authModel.Role
+func (as *RoleService) GetRoleByName(roleName string) (*model.Role, error) {
+	var role model.Role
 	filter := bson.M{"name": roleName}
 	er := as.roleCollection.FindOne(context.TODO(), filter).Decode(&role)
 	return &role, er
 }
 
 func (as *RoleService) NewRole(roleName string) (*mongo.InsertOneResult, error) {
-	role := authModel.Role{
+	role := model.Role{
 		Name: roleName,
 	}
 	return as.roleCollection.InsertOne(context.TODO(), role)

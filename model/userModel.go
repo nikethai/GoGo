@@ -1,7 +1,7 @@
 package model
 
 import (
-	"main/model/authModel"
+	// "main/model/model"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -28,7 +28,7 @@ type UserResponse struct {
 	Address   string             `json:"address" bson:"address,omitempty"`
 	Avatar    string             `json:"avatar" bson:"avatar,omitempty"`
 	Status    string             `json:"status" bson:"status"`
-	Account   authModel.Account  `json:"account" bson:"account"`
+	// Account   AccountResponse    `json:"account" bson:"account"`
 }
 
 type UserRequest struct {

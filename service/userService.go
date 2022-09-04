@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"main/db"
 	"main/model"
-	"main/model/authModel"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,18 +12,19 @@ import (
 )
 
 type UserService struct {
-	userCollection *mongo.Collection
+	userCollection    *mongo.Collection
+	accountCollection *mongo.Collection
 }
 
 func NewUserService() *UserService {
 	return &UserService{
-		userCollection: db.MongoDatabase.Collection("user"),
+		userCollection:    db.MongoDatabase.Collection("user"),
+		accountCollection: db.MongoDatabase.Collection("account"),
 	}
 }
 
-func (us *UserService) GetUserByID(uid string) (*authModel.Account, error) {
-	// var user model.UserResponse
-	var user authModel.Account
+func (us *UserService) GetUserByID(uid string) (*model.UserResponse, error) {
+	var user model.UserResponse
 	id, err := primitive.ObjectIDFromHex(uid)
 
 	if err != nil {
@@ -72,5 +72,13 @@ func (us *UserService) NewUser(reqUser *model.UserRequest, accountId primitive.O
 		Avatar:    reqUser.Avatar,
 		Status:    reqUser.Status,
 	}
-	return us.userCollection.InsertOne(context.TODO(), newusr)
+	rs, err := us.userCollection.InsertOne(context.TODO(), newusr)
+
+	accErr := us.accountCollection.FindOneAndUpdate(context.TODO(), bson.M{"_id": accountId}, bson.M{"$set": bson.M{"userId": rs.InsertedID}}).Err()
+
+	if accErr != nil {
+		return nil, accErr
+	}
+
+	return rs, err
 }

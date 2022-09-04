@@ -2,9 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
 	"main/db"
-	"main/model/authModel"
+	"main/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,20 +21,18 @@ func NewAuthService() *AuthService {
 	}
 }
 
-func (as *AuthService) Login(username string, password string) (*authModel.Account, error) {
-	var account authModel.Account
-	err := as.accountCollection.FindOne(context.TODO(), bson.D{{"username", username}}).Decode(&account)
+func (as *AuthService) Login(username string, password string) (*model.AccountResponse, error) {
+	var account model.AccountResponse
+	err := as.accountCollection.FindOne(context.TODO(),
+		bson.D{{"username", username}, {"password", password}}).Decode(&account)
 	if err != nil {
 		return nil, err
-	}
-	if account.Password != password {
-		return nil, errors.New("incorrect password")
 	}
 	return &account, nil
 }
 
-func (as *AuthService) Register(username string, password string, roles []authModel.Role) (*mongo.InsertOneResult, error) {
-	var rolesList []authModel.Role
+func (as *AuthService) Register(username string, password string, roles []model.Role) (*mongo.InsertOneResult, error) {
+	var rolesList []model.Role
 
 	for _, role := range roles {
 		role, err := as.roleService.GetRoleByName(role.Name)
@@ -45,10 +42,10 @@ func (as *AuthService) Register(username string, password string, roles []authMo
 		rolesList = append(rolesList, *role)
 	}
 
-	account := authModel.Account{
+	account := model.Account{
 		Username: username,
 		Password: password,
-		Role:     rolesList,
+		Roles:    rolesList,
 	}
 
 	rs, err := as.accountCollection.InsertOne(context.TODO(), account)

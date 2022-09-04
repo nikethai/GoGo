@@ -2,7 +2,7 @@ package router
 
 import (
 	"encoding/json"
-	"main/model/authModel"
+	"main/model"
 	"main/service"
 	"net/http"
 
@@ -27,7 +27,7 @@ func (ar *AuthRouter) Routes() chi.Router {
 }
 
 func (ar *AuthRouter) Login(w http.ResponseWriter, r *http.Request) {
-	var authReq authModel.AccountRequest
+	var authReq model.AccountRequest
 	err := json.NewDecoder(r.Body).Decode(&authReq)
 
 	if err != nil {
@@ -47,7 +47,7 @@ func (ar *AuthRouter) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ar *AuthRouter) Register(w http.ResponseWriter, r *http.Request) {
-	var authRegis authModel.AccountRegister
+	var authRegis model.AccountRegister
 	err := json.NewDecoder(r.Body).Decode(&authRegis)
 
 	if err != nil {

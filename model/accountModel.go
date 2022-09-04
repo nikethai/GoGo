@@ -1,12 +1,15 @@
-package authModel
+package model
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Account struct {
 	ID       primitive.ObjectID `json:"id," bson:"_id,omitempty"`
+	UserId   primitive.ObjectID `json:"userId," bson:"userId,omitempty"`
 	Username string             `json:"username" bson:"username"`
 	Password string             `json:"password" bson:"password"`
-	Role     []Role             `json:"roles" bson:"roles"`
+	Roles    []Role             `json:"roles" bson:"roles"`
 }
 
 type AccountRequest struct {
@@ -21,7 +24,7 @@ type AccountRegister struct {
 }
 
 type AccountResponse struct {
-	ID       string `json:"id" `
-	Username string `json:"username"`
-	Roles    []Role `json:"roles"`
+	ID       primitive.ObjectID `json:"id," bson:"_id,omitempty" `
+	Username string             `json:"username"`
+	Roles    []Role             `json:"roles"`
 }

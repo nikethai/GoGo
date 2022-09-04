@@ -2,7 +2,7 @@ package router
 
 import (
 	"encoding/json"
-	"main/model/authModel"
+	"main/model"
 	"main/service"
 	"net/http"
 
@@ -39,7 +39,7 @@ func (ar *RoleRouter) GetRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ar *RoleRouter) NewRole(w http.ResponseWriter, r *http.Request) {
-	var role authModel.Role
+	var role model.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
