@@ -38,7 +38,6 @@ func (qr *QuestionRouter) setQuestionMongo(w http.ResponseWriter, r *http.Reques
 		w.Write([]byte(err.Error()))
 	}
 
-	// rs, err := quesCol.InsertOne(context.TODO(), inputQuestion)
 	rs, err := qr.questionService.CreateQuestion(&inputQuestion)
 
 	if err != nil {

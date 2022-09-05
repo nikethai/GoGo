@@ -14,8 +14,8 @@ type Project struct {
 	CreateBy     primitive.ObjectID   `json:"createBy" bson:"createBy"`
 	CreateAt     time.Time            `json:"createAt" bson:"createAt"`
 	UpdateAt     time.Time            `json:"updateAt" bson:"updateAt"`
-	Participants []primitive.ObjectID `json:"participants" bson:"participants"`
-	Forms        []primitive.ObjectID `json:"forms" bson:"forms"`
+	Participants []primitive.ObjectID `json:"participants" bson:"participants"` // list of user id
+	Forms        []primitive.ObjectID `json:"forms" bson:"forms"`               // list of form id
 }
 
 func (p *Project) MarshalBSON() ([]byte, error) {

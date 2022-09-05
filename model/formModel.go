@@ -8,12 +8,12 @@ import (
 )
 
 type Form struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Name        string             `json:"name" bson:"name"`
-	Description string             `json:"description" bson:"description"`
-	CreateAt    time.Time          `json:"createAt" bson:"createAt"`
-	UpdateAt    time.Time          `json:"updateAt" bson:"updateAt"`
-	Questions   []Question         `json:"questions" bson:"questions"`
+	ID          primitive.ObjectID   `json:"id" bson:"_id,omitempty"`
+	Name        string               `json:"name" bson:"name"`
+	Description string               `json:"description" bson:"description"`
+	CreateAt    time.Time            `json:"createAt" bson:"createAt"`
+	UpdateAt    time.Time            `json:"updateAt" bson:"updateAt"`
+	Questions   []primitive.ObjectID `json:"questions" bson:"questions"` // list of question id (new id for each form)
 }
 
 func (f *Form) MarshalBSON() ([]byte, error) {

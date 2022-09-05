@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"main/db"
+	"main/db/builder"
 	"main/model"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,24 +33,15 @@ func (us *UserService) GetUserByID(uid string, isAccountId bool) (*model.UserRes
 		return nil, err
 	}
 
-	aggSearch = bson.M{"$match": bson.M{
-		"_id": id,
-	}}
+	aggSearch = builder.SearchById("_id", id)
 	if isAccountId {
-		aggSearch = bson.M{"$match": bson.M{
-			"accountId": id,
-		}}
+		aggSearch = builder.SearchById("accountId", id)
 	}
 
-	aggLookup := bson.M{"$lookup": bson.M{
-		"from":         "account",   // collection name in db
-		"localField":   "accountId", // field name of children document
-		"foreignField": "_id",       // field name of parent document
-		"as":           "account",   // new field name in result
-	}}
+	aggLookup := builder.Lookup("account", "accountId", "_id", "account")
 
 	// to remove the array of account field
-	aggUnwind := bson.M{"$unwind": "$account"}
+	aggUnwind := builder.Unwind("account")
 
 	cursor, err := us.userCollection.Aggregate(context.TODO(), []bson.M{aggSearch, aggLookup, aggUnwind})
 
@@ -59,7 +50,6 @@ func (us *UserService) GetUserByID(uid string, isAccountId bool) (*model.UserRes
 	}
 
 	if cursor.Next(context.TODO()) {
-		fmt.Println(cursor.Current.Elements())
 		err := cursor.Decode(&user)
 		if err != nil {
 			return nil, err
