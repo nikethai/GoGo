@@ -21,6 +21,7 @@ func main() {
 	authRouter := router.NewAuthRouter()
 	roleRouter := router.NewRoleRouter()
 	userRouter := router.NewUserRouter()
+	projectRouter := router.NewProjectRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -34,6 +35,7 @@ func main() {
 	r.Mount("/auth", authRouter.Routes())
 	r.Mount("/roles", roleRouter.Routes())
 	r.Mount("/users", userRouter.Routes())
+	r.Mount("/projects", projectRouter.Routes())
 
 	http.ListenAndServe(":3001", r)
 

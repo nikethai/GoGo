@@ -1,8 +1,11 @@
 package builder
 
 import (
+	"context"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type IBuilder interface {
@@ -73,4 +76,42 @@ func Project(fields []string) bson.M {
 		project[field] = 1
 	}
 	return bson.M{"$project": project}
+}
+
+func ConvertToObjectId(id string) (primitive.ObjectID, error) {
+	return primitive.ObjectIDFromHex(id)
+}
+
+func GetAll[T any](collection *mongo.Collection) (*[]T, error) {
+	var result []T
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func GetById[T any](collection *mongo.Collection, pid string) (*T, error) {
+	var result T
+	id, err := ConvertToObjectId(pid)
+	if err != nil {
+		return nil, err
+	}
+	err = collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func GetByField[T any](collection *mongo.Collection, field string, value interface{}) (*T, error) {
+	var result T
+	err := collection.FindOne(context.TODO(), bson.D{{field, value}}).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
