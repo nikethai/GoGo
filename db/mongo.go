@@ -12,8 +12,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var MongoClient *mongo.Client
-var MongoDatabase *mongo.Database
+var (
+	MongoClient   *mongo.Client
+	MongoDatabase *mongo.Database
+)
+
+func InitConnection() {
+	MongoClient = GetMongoEnv()
+	MongoDatabase = MongoClient.Database("surveyDB")
+}
 
 func GetMongoEnv() *mongo.Client {
 	if err := godotenv.Load(); err != nil {
@@ -28,7 +35,6 @@ func GetMongoEnv() *mongo.Client {
 
 	// The hell is TODO? Why TODO? WTF GO????
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-
 	if err != nil {
 		log.Fatalln("Cannot connect to mongodb")
 		log.Fatal(err)

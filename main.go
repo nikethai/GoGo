@@ -9,12 +9,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func main() {
 	// look weird but haven't figured a better way yet
-	db.MongoClient = db.GetMongoEnv()
-	db.MongoDatabase = db.MongoClient.Database("surveyDB")
+	db.InitConnection()
 
 	r := chi.NewRouter()
 	qRouter := router.NewQRouter()
@@ -23,6 +23,14 @@ func main() {
 	userRouter := router.NewUserRouter()
 	projectRouter := router.NewProjectRouter()
 
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.CleanPath)
@@ -45,5 +53,4 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-
 }
