@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"main/db"
-	"main/router"
+	"main/internal/router"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -40,7 +40,7 @@ func main() {
 		w.Write([]byte("welcome"))
 	})
 	r.Mount("/questions", qRouter.Routes())
-	r.Mount("/auth", authRouter.Routes())
+	r.Mount("/auth", authRouter.SetupRoutes())
 	r.Mount("/roles", roleRouter.Routes())
 	r.Mount("/users", userRouter.Routes())
 	r.Mount("/projects", projectRouter.Routes())

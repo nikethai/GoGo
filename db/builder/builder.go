@@ -100,7 +100,7 @@ func GetById[T any](collection *mongo.Collection, pid string) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&result)
+	err = collection.FindOne(context.TODO(), bson.D{{Key: "_id", Value: id}}).Decode(&result)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func GetById[T any](collection *mongo.Collection, pid string) (*T, error) {
 
 func GetByField[T any](collection *mongo.Collection, field string, value interface{}) (*T, error) {
 	var result T
-	err := collection.FindOne(context.TODO(), bson.D{{field, value}}).Decode(&result)
+	err := collection.FindOne(context.TODO(), bson.D{{Key: field, Value: value}}).Decode(&result)
 	if err != nil {
 		return nil, err
 	}

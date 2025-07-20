@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"main/internal/config"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -15,6 +17,12 @@ import (
 var (
 	MongoClient   *mongo.Client
 	MongoDatabase *mongo.Database
+	UserCollection    = config.UserCollection
+	AccountCollection = config.AccountCollection
+	RoleCollection    = config.RoleCollection
+	FormCollection    = config.FormCollection
+	ProjectCollection = config.ProjectCollection
+	QuestionCollection = config.QuestionCollection
 )
 
 func InitConnection() {
