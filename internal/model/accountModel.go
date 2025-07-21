@@ -38,6 +38,7 @@ type AccountRequest struct {
 type AccountRegister struct {
 	Username string `json:"username" binding:"required" example:"john_doe"`
 	Password string `json:"password" binding:"required" example:"password123"`
+	Email    string `json:"email" binding:"required" example:"john@example.com"`
 	Roles    []Role `json:"roles" example:"[{\"name\":\"user\"}]"`
 }
 

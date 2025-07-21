@@ -10,7 +10,7 @@ import (
 	"main/db"
 	"main/internal/config"
 	"main/internal/model"
-	"main/internal/repository/mongo"
+	mongorepo "main/internal/repository/mongo"
 	"main/internal/server/response"
 	"main/internal/service"
 )
@@ -22,8 +22,8 @@ type AuthRouter struct {
 
 func NewAuthRouter() *AuthRouter {
 	// Initialize repositories
-	userRepo := mongo.NewMongoRepository[*model.User](db.MongoDatabase, config.UserCollection)
-	accountRepo := mongo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
+	userRepo := mongorepo.NewMongoRepository[*model.User](db.MongoDatabase, config.UserCollection)
+	accountRepo := mongorepo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
 
 	return &AuthRouter{
 		authService: service.NewAuthService(),
@@ -103,10 +103,22 @@ func (ar *AuthRouter) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rs, err := ar.authService.Register(authRegis.Username, authRegis.Password, authRegis.Roles)
+	// Validate required fields
+	if authRegis.Username == "" || authRegis.Password == "" || authRegis.Email == "" {
+		response.BadRequest(w, "Username, password, and email are required")
+		return
+	}
+
+	// Register the account
+	accountResponse, err := ar.authService.Register(authRegis.Username, authRegis.Password, authRegis.Email, authRegis.Roles)
 	if err != nil {
+		if err == service.ErrDuplicateUsername || err == service.ErrDuplicateEmail {
+			response.Conflict(w, "Username or email already exists")
+			return
+		}
 		response.InternalServerError(w, "Registration failed: "+err.Error())
 		return
 	}
-	response.Created(w, rs, "Account registered successfully")
+
+	response.Created(w, accountResponse, "Account registered successfully")
 }

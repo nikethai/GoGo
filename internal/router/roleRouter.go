@@ -27,6 +27,16 @@ func (ar *RoleRouter) Routes() chi.Router {
 	return r
 }
 
+// getRole godoc
+// @Summary Get a role by ID
+// @Description Retrieve a role by its ID
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param roleId path string true "Role ID"
+// @Success 200 {object} response.Response{data=model.Role} "Role retrieved successfully"
+// @Failure 404 {object} response.Response "Role not found"
+// @Router /roles/{roleId} [get]
 func (ar *RoleRouter) getRole(w http.ResponseWriter, r *http.Request) {
 	roleReq := chi.URLParam(r, "roleId")
 	role, err := ar.roleService.GetRole(roleReq)
@@ -37,6 +47,17 @@ func (ar *RoleRouter) getRole(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, http.StatusOK, role, "Role retrieved successfully")
 }
 
+// newRole godoc
+// @Summary Create a new role
+// @Description Create a new role
+// @Tags Roles
+// @Accept json
+// @Produce json
+// @Param request body model.Role true "Role creation request"
+// @Success 201 {object} response.Response{data=model.Role} "Role created successfully"
+// @Failure 400 {object} response.Response "Invalid request format"
+// @Failure 500 {object} response.Response "Failed to create role"
+// @Router /roles [post]
 func (ar *RoleRouter) newRole(w http.ResponseWriter, r *http.Request) {
 	var role model.Role
 	err := json.NewDecoder(r.Body).Decode(&role)

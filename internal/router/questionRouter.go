@@ -29,6 +29,17 @@ func (qr QuestionRouter) Routes() chi.Router {
 	return r
 }
 
+// setQuestionMongo godoc
+// @Summary Create a new question
+// @Description Create a new question in MongoDB
+// @Tags Questions
+// @Accept json
+// @Produce json
+// @Param request body model.Question true "Question creation request"
+// @Success 201 {object} response.Response{data=model.Question} "Question created successfully"
+// @Failure 400 {object} response.Response "Invalid request format"
+// @Failure 500 {object} response.Response "Failed to create question"
+// @Router /questions [post]
 func (qr *QuestionRouter) setQuestionMongo(w http.ResponseWriter, r *http.Request) {
 	var inputQuestion model.Question
 
@@ -49,6 +60,15 @@ func (qr *QuestionRouter) setQuestionMongo(w http.ResponseWriter, r *http.Reques
 	response.Created(w, rs, "Question created successfully")
 }
 
+// getAllQuestions godoc
+// @Summary Get all questions
+// @Description Retrieve all questions
+// @Tags Questions
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response{data=[]model.Question} "Questions retrieved successfully"
+// @Failure 500 {object} response.Response "Failed to retrieve questions"
+// @Router /questions [get]
 func (qr *QuestionRouter) getAllQuestions(w http.ResponseWriter, r *http.Request) {
 	questions, err := qr.questionService.GetAllQuestions()
 

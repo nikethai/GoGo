@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"main/db"
 	"main/internal/model"
 
@@ -13,6 +14,12 @@ type AuthService struct {
 	accountCollection *mongo.Collection
 	roleService       *RoleService
 }
+
+// Custom errors
+var (
+	ErrDuplicateUsername = errors.New("username already exists")
+	ErrDuplicateEmail    = errors.New("email already exists")
+)
 
 func NewAuthService() *AuthService {
 	return &AuthService{
@@ -45,15 +52,48 @@ func (as *AuthService) Login(username string, password string) (*model.AccountRe
 	return accountResponse, nil
 }
 
-func (as *AuthService) Register(username string, password string, roles []model.Role) (*mongo.InsertOneResult, error) {
+func (as *AuthService) Register(username string, password string, email string, roles []model.Role) (*model.AccountResponse, error) {
+	// Check if username already exists
+	var existingAccount model.Account
+	err := as.accountCollection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&existingAccount)
+	if err == nil {
+		// Username already exists
+		return nil, ErrDuplicateUsername
+	} else if err != mongo.ErrNoDocuments {
+		// Some other error occurred
+		return nil, err
+	}
+
+	// Check if email already exists (in user collection)
+	var existingUser model.User
+	userCollection := db.MongoDatabase.Collection("user")
+	err = userCollection.FindOne(context.TODO(), bson.M{"email": email}).Decode(&existingUser)
+	if err == nil {
+		// Email already exists
+		return nil, ErrDuplicateEmail
+	} else if err != mongo.ErrNoDocuments {
+		// Some other error occurred
+		return nil, err
+	}
+
 	var rolesList []model.Role
 
-	for _, role := range roles {
-		role, err := as.roleService.GetRoleByName(role.Name)
+	// If no roles provided, assign default user role
+	if len(roles) == 0 {
+		userRole, err := as.roleService.GetRoleByName("user")
 		if err != nil {
 			return nil, err
 		}
-		rolesList = append(rolesList, *role)
+		rolesList = append(rolesList, *userRole)
+	} else {
+		// Process provided roles
+		for _, role := range roles {
+			role, err := as.roleService.GetRoleByName(role.Name)
+			if err != nil {
+				return nil, err
+			}
+			rolesList = append(rolesList, *role)
+		}
 	}
 
 	account := model.Account{
@@ -63,7 +103,7 @@ func (as *AuthService) Register(username string, password string, roles []model.
 	}
 
 	// Hash the password before saving
-	err := account.HashPassword()
+	err = account.HashPassword()
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +111,16 @@ func (as *AuthService) Register(username string, password string, roles []model.
 	// Set timestamps
 	account.SetTimestamps()
 
-	rs, err := as.accountCollection.InsertOne(context.TODO(), account)
-
+	_, err = as.accountCollection.InsertOne(context.TODO(), account)
 	if err != nil {
 		return nil, err
 	}
 
-	return rs, nil
+	// Return account response without password
+	accountResponse := &model.AccountResponse{
+		ID:       account.ID,
+		Username: account.Username,
+		Roles:    account.Roles,
+	}
+	return accountResponse, nil
 }
