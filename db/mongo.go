@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"main/internal/config"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -28,6 +30,9 @@ var (
 func InitConnection() {
 	MongoClient = GetMongoEnv()
 	MongoDatabase = MongoClient.Database("surveyDB")
+	
+	// Initialize default roles if they don't exist
+	initializeDefaultRoles()
 }
 
 func GetMongoEnv() *mongo.Client {
@@ -56,4 +61,67 @@ func GetMongoEnv() *mongo.Client {
 	fmt.Println("Connected to MongoDB!")
 
 	return client
+}
+
+// initializeDefaultRoles creates default roles if they don't exist
+func initializeDefaultRoles() {
+	roleCollection := MongoDatabase.Collection(RoleCollection)
+	
+	// Check if the default user role exists
+	var userRole struct {
+		Name string `bson:"name"`
+	}
+	
+	err := roleCollection.FindOne(context.TODO(), bson.M{"name": "user"}).Decode(&userRole)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			// Create the default user role
+			defaultRole := struct {
+				Name      string    `bson:"name"`
+				CreatedAt time.Time `bson:"createdAt"`
+				UpdatedAt time.Time `bson:"updatedAt"`
+			}{
+				Name:      "user",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			
+			_, err := roleCollection.InsertOne(context.TODO(), defaultRole)
+			if err != nil {
+				log.Printf("Failed to create default user role: %v", err)
+			} else {
+				log.Println("Created default user role")
+			}
+		} else {
+			log.Printf("Error checking for default user role: %v", err)
+		}
+	}
+	
+	// Check if admin role exists
+	var adminRole struct {
+		Name string `bson:"name"`
+	}
+	
+	err = roleCollection.FindOne(context.TODO(), bson.M{"name": "admin"}).Decode(&adminRole)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			// Create the admin role
+			adminRoleDoc := struct {
+				Name      string    `bson:"name"`
+				CreatedAt time.Time `bson:"createdAt"`
+				UpdatedAt time.Time `bson:"updatedAt"`
+			}{
+				Name:      "admin",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			
+			_, err := roleCollection.InsertOne(context.TODO(), adminRoleDoc)
+			if err != nil {
+				log.Printf("Failed to create admin role: %v", err)
+			} else {
+				log.Println("Created admin role")
+			}
+		}
+	}
 }

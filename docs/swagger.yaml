@@ -27,6 +27,35 @@ definitions:
         example: john_doe
         type: string
     type: object
+  model.Project:
+    properties:
+      createBy:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      description:
+        type: string
+      forms:
+        description: list of form id
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      participants:
+        description: list of user id
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  model.Question:
+    type: object
   model.Role:
     properties:
       createdAt:
@@ -38,6 +67,25 @@ definitions:
       name:
         type: string
       updatedAt:
+        type: string
+    type: object
+  model.UserRequest:
+    properties:
+      accountId:
+        type: string
+      address:
+        type: string
+      avatar:
+        type: string
+      dob:
+        type: string
+      email:
+        type: string
+      fullName:
+        type: string
+      phone:
+        type: string
+      status:
         type: string
     type: object
   model.UserResponse:
@@ -61,6 +109,14 @@ definitions:
         type: string
       status:
         type: string
+    type: object
+  response.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      statusCode:
+        type: integer
     type: object
 host: localhost:3001
 info:
@@ -157,6 +213,294 @@ paths:
       summary: User registration
       tags:
       - Authentication
+  /projects:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all projects
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Projects retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Project'
+                  type: array
+              type: object
+        "500":
+          description: Failed to retrieve projects
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get all projects
+      tags:
+      - Projects
+    post:
+      consumes:
+      - application/json
+      description: Create a new project
+      parameters:
+      - description: Project creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Project'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Project created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Project'
+              type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to create project
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new project
+      tags:
+      - Projects
+  /projects/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a project by its ID
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Project'
+              type: object
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get project by ID
+      tags:
+      - Projects
+  /questions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all questions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Questions retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Question'
+                  type: array
+              type: object
+        "500":
+          description: Failed to retrieve questions
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get all questions
+      tags:
+      - Questions
+    post:
+      consumes:
+      - application/json
+      description: Create a new question in MongoDB
+      parameters:
+      - description: Question creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Question'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Question created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Question'
+              type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to create question
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new question
+      tags:
+      - Questions
+  /roles:
+    post:
+      consumes:
+      - application/json
+      description: Create a new role
+      parameters:
+      - description: Role creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Role'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Role created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Role'
+              type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to create role
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new role
+      tags:
+      - Roles
+  /roles/{roleId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Role'
+              type: object
+        "404":
+          description: Role not found
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get a role by ID
+      tags:
+      - Roles
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user for an existing account
+      parameters:
+      - description: User creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserResponse'
+              type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to create user
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new user
+      tags:
+      - Users
+  /users/{uid}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a user by their ID with account information
+      parameters:
+      - description: User ID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserResponse'
+              type: object
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get user by ID
+      tags:
+      - Users
 schemes:
 - http
 - https
