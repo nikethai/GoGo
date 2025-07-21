@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -60,9 +61,13 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log login attempt
+	fmt.Println("===== Login attempt for username:", authReq.Username, "=====")
+
 	account, err := ar.authService.Login(authReq.Username, authReq.Password)
 	if err != nil {
-		response.Unauthorized(w, "Invalid credentials: "+err.Error())
+		fmt.Println("===== Login failed for username:", authReq.Username, "Error:", err.Error(), "=====")
+		response.Unauthorized(w, "Invalid credentials")
 		return
 	}
 
@@ -72,13 +77,16 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 	if usrErr != nil {
 		// If user not found, return just the account (maintaining old behavior)
 		if usrErr.Error() == "user not found" {
+			fmt.Println("===== User not found for account ID:", account.ID.Hex(), "=====")
 			response.Success(w, http.StatusOK, account, "Login successful")
 			return
 		}
+		fmt.Println("===== Error retrieving user profile:", usrErr.Error(), "=====")
 		response.InternalServerError(w, "Error retrieving user profile: "+usrErr.Error())
 		return
 	}
 
+	fmt.Println("===== Login successful for username:", authReq.Username, "=====")
 	response.Success(w, http.StatusOK, userWithAccount, "Login successful")
 }
 

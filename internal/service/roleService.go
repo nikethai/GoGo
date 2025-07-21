@@ -42,9 +42,9 @@ func (as *RoleService) NewRole(roleName string) (*mongo.InsertOneResult, error) 
 	role := model.Role{
 		Name: roleName,
 	}
-	
+
 	// Set timestamps
 	role.SetTimestamps()
-	
+
 	return as.roleCollection.InsertOne(context.TODO(), role)
 }

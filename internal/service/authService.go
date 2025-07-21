@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"main/db"
 	"main/internal/model"
 
@@ -34,12 +35,17 @@ func (as *AuthService) Login(username string, password string) (*model.AccountRe
 	err := as.accountCollection.FindOne(context.TODO(),
 		bson.D{{Key: "username", Value: username}}).Decode(&account)
 	if err != nil {
+		log.Printf("Login error for username %s: %v", username, err)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("invalid username or password")
+		}
 		return nil, err
 	}
 
 	// Check if the password matches
 	err = account.CheckPassword(password)
 	if err != nil {
+		log.Printf("Password check error for username %s: %v", username, err)
 		return nil, err
 	}
 

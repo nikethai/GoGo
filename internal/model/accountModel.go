@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +26,11 @@ func (a *Account) HashPassword() error {
 
 // CheckPassword compares the provided password with the hashed password
 func (a *Account) CheckPassword(password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password))
+	if err != nil {
+		return errors.New("invalid username or password")
+	}
+	return nil
 }
 
 // AccountRequest represents the login request payload
