@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"main/db"
+	customError "main/internal/error"
 	"main/internal/model"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,12 +16,6 @@ type AuthService struct {
 	accountCollection *mongo.Collection
 	roleService       *RoleService
 }
-
-// Custom errors
-var (
-	ErrDuplicateUsername = errors.New("username already exists")
-	ErrDuplicateEmail    = errors.New("email already exists")
-)
 
 func NewAuthService() *AuthService {
 	return &AuthService{
@@ -37,7 +32,7 @@ func (as *AuthService) Login(username string, password string) (*model.AccountRe
 	if err != nil {
 		log.Printf("Login error for username %s: %v", username, err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errors.New("invalid username or password")
+			return nil, customError.ErrInvalidCredentials
 		}
 		return nil, err
 	}
@@ -64,7 +59,7 @@ func (as *AuthService) Register(username string, password string, email string, 
 	err := as.accountCollection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&existingAccount)
 	if err == nil {
 		// Username already exists
-		return nil, ErrDuplicateUsername
+		return nil, customError.ErrDuplicateUsername
 	} else if err != mongo.ErrNoDocuments {
 		// Some other error occurred
 		return nil, err
@@ -76,7 +71,7 @@ func (as *AuthService) Register(username string, password string, email string, 
 	err = userCollection.FindOne(context.TODO(), bson.M{"email": email}).Decode(&existingUser)
 	if err == nil {
 		// Email already exists
-		return nil, ErrDuplicateEmail
+		return nil, customError.ErrDuplicateEmail
 	} else if err != mongo.ErrNoDocuments {
 		// Some other error occurred
 		return nil, err

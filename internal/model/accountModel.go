@@ -1,7 +1,8 @@
 package model
 
 import (
-	"errors"
+	customError "main/internal/error"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -28,7 +29,7 @@ func (a *Account) HashPassword() error {
 func (a *Account) CheckPassword(password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password))
 	if err != nil {
-		return errors.New("invalid username or password")
+		return customError.ErrInvalidCredentials
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 
 	"main/db"
 	"main/internal/config"
+	customError "main/internal/error"
 	"main/internal/model"
 	mongorepo "main/internal/repository/mongo"
 	"main/internal/server/response"
@@ -57,7 +58,7 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&authReq)
 
 	if err != nil {
-		response.BadRequest(w, "Invalid request format: "+err.Error())
+		response.BadRequest(w, customError.ErrInvalidRequestFormat.Error()+": "+err.Error())
 		return
 	}
 
@@ -67,7 +68,7 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 	account, err := ar.authService.Login(authReq.Username, authReq.Password)
 	if err != nil {
 		fmt.Println("===== Login failed for username:", authReq.Username, "Error:", err.Error(), "=====")
-		response.Unauthorized(w, "Invalid credentials")
+		response.Unauthorized(w, customError.ErrInvalidCredentials.Error())
 		return
 	}
 
@@ -76,13 +77,13 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 
 	if usrErr != nil {
 		// If user not found, return just the account (maintaining old behavior)
-		if usrErr.Error() == "user not found" {
+		if usrErr == customError.ErrUserNotFound {
 			fmt.Println("===== User not found for account ID:", account.ID.Hex(), "=====")
 			response.Success(w, http.StatusOK, account, "Login successful")
 			return
 		}
 		fmt.Println("===== Error retrieving user profile:", usrErr.Error(), "=====")
-		response.InternalServerError(w, "Error retrieving user profile: "+usrErr.Error())
+		response.InternalServerError(w, customError.ErrProfileRetrieval.Error()+": "+usrErr.Error())
 		return
 	}
 
@@ -107,24 +108,24 @@ func (ar *AuthRouter) register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&authRegis)
 
 	if err != nil {
-		response.BadRequest(w, "Invalid request format: "+err.Error())
+		response.BadRequest(w, customError.ErrInvalidRequestFormat.Error()+": "+err.Error())
 		return
 	}
 
 	// Validate required fields
 	if authRegis.Username == "" || authRegis.Password == "" || authRegis.Email == "" {
-		response.BadRequest(w, "Username, password, and email are required")
+		response.BadRequest(w, customError.ErrMissingRegistrationDetails.Error())
 		return
 	}
 
 	// Register the account
 	accountResponse, err := ar.authService.Register(authRegis.Username, authRegis.Password, authRegis.Email, authRegis.Roles)
 	if err != nil {
-		if err == service.ErrDuplicateUsername || err == service.ErrDuplicateEmail {
-			response.Conflict(w, "Username or email already exists")
+		if err == customError.ErrDuplicateUsername || err == customError.ErrDuplicateEmail {
+			response.Conflict(w, customError.ErrDuplicateUsernameOrEmail.Error())
 			return
 		}
-		response.InternalServerError(w, "Registration failed: "+err.Error())
+		response.InternalServerError(w, customError.ErrRegistrationFailed.Error()+": "+err.Error())
 		return
 	}
 
