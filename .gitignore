@@ -23,3 +23,6 @@ go.work
 # built file
 powah
 .idea
+
+.env
+.env.local
