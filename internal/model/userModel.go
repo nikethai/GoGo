@@ -1,13 +1,11 @@
 package model
 
 import (
-	// "main/model/model"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
-	ID        primitive.ObjectID `json:"id," bson:"_id,omitempty"`
+	BaseModel `bson:",inline"`
 	AccountId primitive.ObjectID `json:"accountId," bson:"accountId,omitempty"`
 	Fullname  string             `json:"fullName" bson:"fullName"`
 	DOB       string             `json:"dob" bson:"dob"`
@@ -16,16 +14,6 @@ type User struct {
 	Address   string             `json:"address" bson:"address,omitempty"`
 	Avatar    string             `json:"avatar" bson:"avatar,omitempty"`
 	Status    string             `json:"status" bson:"status"`
-}
-
-// GetID implements the Entity interface
-func (u *User) GetID() primitive.ObjectID {
-	return u.ID
-}
-
-// SetID implements the Entity interface
-func (u *User) SetID(id primitive.ObjectID) {
-	u.ID = id
 }
 
 type UserResponse struct {

@@ -48,6 +48,9 @@ func (qs *QuestionService) CreateQuestion(question *model.Question) (*mongo.Inse
 	}
 
 	question.Uuid = newUuid.String()
+	
+	// Set timestamps
+	question.SetTimestamps()
 
 	rs, err := qs.questionCollection.InsertOne(context.TODO(), question)
 	if err != nil {

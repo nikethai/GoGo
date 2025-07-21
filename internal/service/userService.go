@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"main/internal/model"
 	"main/internal/repository"
@@ -37,11 +38,17 @@ func (s *UserService) CreateUser(ctx context.Context, userReq *model.UserRequest
 
 	// Create account first
 	account := &model.Account{
-		ID:       primitive.NewObjectID(),
 		Username: accountReq.Username,
-		Password: accountReq.Password, // In real app, hash this
-		Roles:    []model.Role{},      // Default empty roles
+		Password: accountReq.Password,
+		Roles:    []model.Role{}, // Default empty roles
 	}
+
+	// Hash password and set timestamps
+	err = account.HashPassword()
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+	account.SetTimestamps()
 
 	createdAccount, err := s.accountRepo.Create(ctx, account)
 	if err != nil {
@@ -50,12 +57,14 @@ func (s *UserService) CreateUser(ctx context.Context, userReq *model.UserRequest
 
 	// Create user
 	user := &model.User{
-		ID:        primitive.NewObjectID(),
 		AccountId: createdAccount.GetID(),
 		Fullname:  userReq.Fullname,
 		Email:     userReq.Email,
 		Status:    "active",
 	}
+
+	// Set timestamps for user
+	user.SetTimestamps()
 
 	createdUser, err := s.userRepo.Create(ctx, user)
 	if err != nil {
@@ -115,6 +124,8 @@ func (s *UserService) ListUsers(ctx context.Context, page, limit int) (*reposito
 
 // UpdateUser updates a user
 func (s *UserService) UpdateUser(ctx context.Context, userID primitive.ObjectID, updates bson.M) (*model.User, error) {
+	// Add updated timestamp
+	updates["updatedAt"] = time.Now()
 	return s.userRepo.Update(ctx, userID, updates)
 }
 
@@ -177,7 +188,6 @@ func (s *UserService) CreateUserForExistingAccount(ctx context.Context, userReq 
 
 	// Create user
 	user := &model.User{
-		ID:        primitive.NewObjectID(),
 		AccountId: userReq.AccountId,
 		Fullname:  userReq.Fullname,
 		DOB:       userReq.DOB,
@@ -188,13 +198,19 @@ func (s *UserService) CreateUserForExistingAccount(ctx context.Context, userReq 
 		Status:    userReq.Status,
 	}
 
+	// Set timestamps
+	user.SetTimestamps()
+
 	createdUser, err := s.userRepo.Create(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	// Update account with user ID (maintaining old behavior)
-	updates := bson.M{"userId": createdUser.GetID()}
+	updates := bson.M{
+		"userId":    createdUser.GetID(),
+		"updatedAt": time.Now(),
+	}
 	_, err = s.accountRepo.Update(ctx, userReq.AccountId, updates)
 	if err != nil {
 		// Log error but don't fail the operation since user was created

@@ -8,10 +8,11 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"main/db"
-	"main/internal/repository/mongo"
-	"main/internal/service"
 	"main/internal/config"
 	"main/internal/model"
+	"main/internal/repository/mongo"
+	"main/internal/server/response"
+	"main/internal/service"
 )
 
 type AuthRouter struct {
@@ -23,7 +24,7 @@ func NewAuthRouter() *AuthRouter {
 	// Initialize repositories
 	userRepo := mongo.NewMongoRepository[*model.User](db.MongoDatabase, config.UserCollection)
 	accountRepo := mongo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
-	
+
 	return &AuthRouter{
 		authService: service.NewAuthService(),
 		userService: service.NewUserService(userRepo, accountRepo),
@@ -37,58 +38,75 @@ func (ar *AuthRouter) SetupRoutes() chi.Router {
 	return r
 }
 
+// login godoc
+// @Summary User login
+// @Description Authenticate user with username and password
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body model.AccountRequest true "Login credentials"
+// @Success 200 {object} model.UserResponse "User successfully authenticated"
+// @Success 200 {object} model.AccountResponse "Account found but no user profile"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/login [post]
 func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 	var authReq model.AccountRequest
 	err := json.NewDecoder(r.Body).Decode(&authReq)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.BadRequest(w, "Invalid request format: "+err.Error())
 		return
 	}
 
 	account, err := ar.authService.Login(authReq.Username, authReq.Password)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.Unauthorized(w, "Invalid credentials: "+err.Error())
 		return
 	}
-	
+
 	// Get user by account ID using the new service method
 	userWithAccount, usrErr := ar.userService.GetUserByAccountID(context.Background(), account.ID)
-	
+
 	if usrErr != nil {
 		// If user not found, return just the account (maintaining old behavior)
 		if usrErr.Error() == "user not found" {
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(account)
+			response.Success(w, http.StatusOK, account, "Login successful")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(usrErr.Error()))
+		response.InternalServerError(w, "Error retrieving user profile: "+usrErr.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userWithAccount)
+	response.Success(w, http.StatusOK, userWithAccount, "Login successful")
 }
 
+// register godoc
+// @Summary User registration
+// @Description Register a new user account with roles
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body model.AccountRegister true "Registration details"
+// @Success 200 {object} model.AccountResponse "Account successfully created"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 409 {object} map[string]string "Username already exists"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/register [post]
 func (ar *AuthRouter) register(w http.ResponseWriter, r *http.Request) {
 	var authRegis model.AccountRegister
 	err := json.NewDecoder(r.Body).Decode(&authRegis)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Decode err: " + err.Error()))
+		response.BadRequest(w, "Invalid request format: "+err.Error())
 		return
 	}
 
 	rs, err := ar.authService.Register(authRegis.Username, authRegis.Password, authRegis.Roles)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.InternalServerError(w, "Registration failed: "+err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(rs)
+	response.Created(w, rs, "Account registered successfully")
 }

@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/json"
 	"main/internal/model"
+	"main/internal/server/response"
 	"main/internal/service"
 	"net/http"
 
@@ -31,24 +32,22 @@ func (pr *ProjectRouter) getAllProjects(w http.ResponseWriter, r *http.Request) 
 	projects, err := pr.projectService.GetProjects()
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.InternalServerError(w, "Failed to retrieve projects: "+err.Error())
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(projects)
+	response.Success(w, http.StatusOK, projects, "Projects retrieved successfully")
 }
 
 func (pr *ProjectRouter) getProjectById(w http.ResponseWriter, r *http.Request) {
-	projects, err := pr.projectService.GetProjectById(chi.URLParam(r, "id"))
+	project, err := pr.projectService.GetProjectById(chi.URLParam(r, "id"))
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.NotFound(w, "Project not found")
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(projects)
+	response.Success(w, http.StatusOK, project, "Project retrieved successfully")
 }
 
 func (pr *ProjectRouter) createProject(w http.ResponseWriter, r *http.Request) {
@@ -57,17 +56,16 @@ func (pr *ProjectRouter) createProject(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&inputProject)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.BadRequest(w, "Invalid request format: "+err.Error())
+		return
 	}
 
 	rs, err := pr.projectService.CreateProject(&inputProject)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.InternalServerError(w, "Failed to create project: "+err.Error())
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(rs)
+	response.Created(w, rs, "Project created successfully")
 }

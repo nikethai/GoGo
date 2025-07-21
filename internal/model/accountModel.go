@@ -2,39 +2,48 @@ package model
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Account struct {
-	ID       primitive.ObjectID `json:"id," bson:"_id,omitempty"`
-	UserId   primitive.ObjectID `json:"userId," bson:"userId,omitempty"`
-	Username string             `json:"username" bson:"username"`
-	Password string             `json:"password" bson:"password"`
-	Roles    []Role             `json:"roles" bson:"roles"`
+	BaseModel `bson:",inline"`
+	UserId    primitive.ObjectID `json:"userId," bson:"userId,omitempty"`
+	Username  string             `json:"username" bson:"username"`
+	Password  string             `json:"password" bson:"password"`
+	Roles     []Role             `json:"roles" bson:"roles"`
 }
 
-// GetID implements the Entity interface
-func (a *Account) GetID() primitive.ObjectID {
-	return a.ID
+// HashPassword hashes the account password using bcrypt
+func (a *Account) HashPassword() error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(a.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	a.Password = string(hashedPassword)
+	return nil
 }
 
-// SetID implements the Entity interface
-func (a *Account) SetID(id primitive.ObjectID) {
-	a.ID = id
+// CheckPassword compares the provided password with the hashed password
+func (a *Account) CheckPassword(password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password))
 }
 
+// AccountRequest represents the login request payload
 type AccountRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" binding:"required" example:"john_doe"`
+	Password string `json:"password" binding:"required" example:"password123"`
 }
 
+// AccountRegister represents the registration request payload
 type AccountRegister struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Roles    []Role `json:"roles"`
+	Username string `json:"username" binding:"required" example:"john_doe"`
+	Password string `json:"password" binding:"required" example:"password123"`
+	Roles    []Role `json:"roles" example:"[{\"name\":\"user\"}]"`
 }
 
+// AccountResponse represents the account data in API responses
 type AccountResponse struct {
-	ID       primitive.ObjectID `json:"id," bson:"_id,omitempty" `
-	Username string             `json:"username"`
+	ID       primitive.ObjectID `json:"id" bson:"_id,omitempty" example:"507f1f77bcf86cd799439011"`
+	Username string             `json:"username" example:"john_doe"`
 	Roles    []Role             `json:"roles"`
 }

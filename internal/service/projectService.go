@@ -43,5 +43,7 @@ func (p *ProjectService) GetProjectById(pid string) (*model.Project, error) {
 }
 
 func (p *ProjectService) CreateProject(project *model.Project) (*mongo.InsertOneResult, error) {
+	// Set timestamps
+	project.SetTimestamps()
 	return p.projectCollection.InsertOne(context.TODO(), project)
 }

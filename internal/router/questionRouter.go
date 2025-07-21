@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/json"
 	"main/internal/model"
+	"main/internal/server/response"
 	"main/internal/service"
 	"net/http"
 
@@ -34,29 +35,27 @@ func (qr *QuestionRouter) setQuestionMongo(w http.ResponseWriter, r *http.Reques
 	err := json.NewDecoder(r.Body).Decode(&inputQuestion)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.BadRequest(w, "Invalid request format: "+err.Error())
+		return
 	}
 
 	rs, err := qr.questionService.CreateQuestion(&inputQuestion)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.InternalServerError(w, "Failed to create question: "+err.Error())
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(rs)
+	response.Created(w, rs, "Question created successfully")
 }
 
 func (qr *QuestionRouter) getAllQuestions(w http.ResponseWriter, r *http.Request) {
 	questions, err := qr.questionService.GetAllQuestions()
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.InternalServerError(w, "Failed to retrieve questions: "+err.Error())
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(questions)
+	response.Success(w, http.StatusOK, questions, "Questions retrieved successfully")
 }

@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/json"
 	"main/internal/model"
+	"main/internal/server/response"
 	"main/internal/service"
 	"net/http"
 
@@ -30,26 +31,23 @@ func (ar *RoleRouter) getRole(w http.ResponseWriter, r *http.Request) {
 	roleReq := chi.URLParam(r, "roleId")
 	role, err := ar.roleService.GetRole(roleReq)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.NotFound(w, "Role not found")
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(role)
+	response.Success(w, http.StatusOK, role, "Role retrieved successfully")
 }
 
 func (ar *RoleRouter) newRole(w http.ResponseWriter, r *http.Request) {
 	var role model.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.BadRequest(w, "Invalid request format: "+err.Error())
+		return
 	}
 	rs, err := ar.roleService.NewRole(role.Name)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		response.InternalServerError(w, "Failed to create role: "+err.Error())
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(rs)
+	response.Created(w, rs, "Role created successfully")
 }

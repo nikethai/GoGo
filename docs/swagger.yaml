@@ -1,0 +1,169 @@
+basePath: /
+definitions:
+  model.AccountRegister:
+    type: object
+  model.AccountRequest:
+    properties:
+      password:
+        example: password123
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  model.AccountResponse:
+    properties:
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/model.Role'
+        type: array
+      username:
+        example: john_doe
+        type: string
+    type: object
+  model.Role:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  model.UserResponse:
+    properties:
+      account:
+        $ref: '#/definitions/model.AccountResponse'
+      address:
+        type: string
+      avatar:
+        type: string
+      dob:
+        type: string
+      email:
+        type: string
+      fullName:
+        description: AccountId primitive.ObjectID `json:"accountId," bson:"accountId,omitempty"`
+        type: string
+      id:
+        type: string
+      phone:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:3001
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API Server for Gogo application with user management, projects, questions,
+    and forms
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Gogo API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with username and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.AccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Account found but no user profile
+          schema:
+            $ref: '#/definitions/model.AccountResponse'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account with roles
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.AccountRegister'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Account successfully created
+          schema:
+            $ref: '#/definitions/model.AccountResponse'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Username already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User registration
+      tags:
+      - Authentication
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
