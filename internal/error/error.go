@@ -27,4 +27,5 @@ var (
 	ErrTokenInvalid      = errors.New("invalid token")
 	ErrMissingToken      = errors.New("missing authentication token")
 	ErrInvalidTokenFormat = errors.New("invalid token format")
+	ErrInvalidState      = errors.New("invalid state parameter")
 )
