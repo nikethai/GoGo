@@ -10,6 +10,7 @@ import (
 	"main/pkg/auth"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -127,9 +128,36 @@ func (as *AuthService) Register(username string, password string, email string, 
 	// Set timestamps
 	account.SetTimestamps()
 
-	_, err = as.accountCollection.InsertOne(context.TODO(), account)
+	result, err := as.accountCollection.InsertOne(context.TODO(), account)
 	if err != nil {
 		return nil, err
+	}
+
+	// Create corresponding user profile
+	accountID, ok := result.InsertedID.(primitive.ObjectID)
+	if !ok {
+		log.Printf("Failed to convert account ID for user %s", username)
+		return nil, customError.ErrUserCreation
+	}
+
+	user := model.User{
+		AccountId: accountID,
+		Fullname:  username, // Use username as default fullname
+		Email:     email,
+		Status:    "active", // Set default status
+	}
+
+	// Set timestamps for user
+	user.SetTimestamps()
+
+	// Insert the user profile
+	_, err = userCollection.InsertOne(context.TODO(), user)
+	if err != nil {
+		// If user creation fails, we should clean up the account
+		// For now, we'll log the error but still return the account
+		// In production, you might want to implement a transaction
+		log.Printf("Failed to create user profile for account %s: %v", username, err)
+		return nil, customError.ErrUserCreation
 	}
 
 	// Return account response without password

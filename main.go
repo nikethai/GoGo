@@ -71,11 +71,10 @@ r.Use(middleware.SetHeader("Content-Type", "application/json"))
 	})
 	// Public routes (no authentication required)
 	r.Mount("/auth", authRouter.SetupRoutes())
-	r.Mount("/swagger", http.StripPrefix("/swagger", http.FileServer(http.Dir("./swagger"))))
 
-	// Create a router group with JWT authentication
+	// Create a router group with hybrid authentication (supports both JWT and Azure AD)
 	protectedRouter := chi.NewRouter()
-	protectedRouter.Use(customMiddleware.JWTAuth)
+	protectedRouter.Use(customMiddleware.HybridAuth)
 
 	// Protected routes (authentication required)
 	protectedRouter.Mount("/questions", qRouter.Routes())

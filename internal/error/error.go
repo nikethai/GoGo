@@ -15,6 +15,7 @@ var (
 	ErrDuplicateUsername          = errors.New("username already exists")
 	ErrDuplicateEmail             = errors.New("email already exists")
 	ErrDuplicateUsernameOrEmail   = errors.New("username or email already exists")
+	ErrUserCreation               = errors.New("failed to create user profile")
 
 	// Profile errors
 	ErrProfileRetrieval = errors.New("error retrieving user profile")
