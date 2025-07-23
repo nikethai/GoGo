@@ -43,4 +43,10 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1753279215799_3dmq2gs0n" time="2025/07/23 21:00">
+    <content>
+      This is a backend repository. All future tasks should focus on backend-related implementations only.
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>
