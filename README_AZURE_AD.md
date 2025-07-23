@@ -198,6 +198,36 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 3. **Test Both Authentication Types**
    - Existing JWT tokens should continue working
+
+## OAuth 2.0 Authorization Code Flow
+
+The Gogo API now fully supports the OAuth 2.0 Authorization Code Flow with PKCE (Proof Key for Code Exchange) for enhanced security when integrating with Azure AD.
+
+### Endpoints
+
+- **`/auth/azure/login`**
+  - Initiates the OAuth 2.0 Authorization Code Flow.
+  - Redirects the user to the Azure AD login page.
+  - Automatically generates and includes PKCE `code_challenge` and `state` parameters for security.
+
+- **`/auth/azure/callback`**
+  - Handles the callback from Azure AD after successful user authentication.
+  - Exchanges the authorization `code` for `access_token`, `refresh_token`, and `id_token`.
+  - Validates the `state` parameter to prevent CSRF attacks.
+  - Stores session information and tokens securely.
+
+### Security Features
+
+- **PKCE Support**: Protects against authorization code interception attacks by verifying the client application during the token exchange process.
+- **State Parameter Validation**: Ensures that the authorization response from Azure AD is legitimate and prevents Cross-Site Request Forgery (CSRF) attacks.
+
+### Usage Example (Conceptual Flow)
+
+1. **Initiate Login**: Your client application redirects the user to `/auth/azure/login`.
+2. **Azure AD Authentication**: The user authenticates with Azure AD.
+3. **Callback Handling**: Azure AD redirects back to `/auth/azure/callback` with an authorization code.
+4. **Token Exchange**: The Gogo API backend exchanges the code for tokens.
+5. **Session Establishment**: A secure session is established for the user.
    - Azure AD tokens should now be accepted
 
 ### Gradual Migration Strategy

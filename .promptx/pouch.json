@@ -1,5 +1,5 @@
 {
-  "currentState": "role_activated_with_memory",
+  "currentState": "learn_error",
   "stateHistory": [
     {
       "from": "initial",
@@ -194,7 +194,37 @@
       "args": [
         "luban"
       ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "learn",
+      "timestamp": "2025-07-23T14:55:02.148Z",
+      "args": [
+        "@manual://promptx_action"
+      ]
+    },
+    {
+      "from": "learn_error",
+      "command": "welcome",
+      "timestamp": "2025-07-23T14:55:08.472Z",
+      "args": []
+    },
+    {
+      "from": "service_discovery",
+      "command": "action",
+      "timestamp": "2025-07-23T14:55:14.263Z",
+      "args": [
+        "[role-id]"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "learn",
+      "timestamp": "2025-07-23T14:55:18.430Z",
+      "args": [
+        "@manual://promptx_action"
+      ]
     }
   ],
-  "lastUpdated": "2025-07-23T14:43:58.896Z"
+  "lastUpdated": "2025-07-23T14:55:18.433Z"
 }
