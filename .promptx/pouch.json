@@ -1,5 +1,5 @@
 {
-  "currentState": "role_activated_with_memory",
+  "currentState": "learn_error",
   "stateHistory": [
     {
       "from": "initial",
@@ -112,7 +112,23 @@
       "args": [
         "assistant"
       ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "action",
+      "timestamp": "2025-07-23T13:08:08.873Z",
+      "args": [
+        "assistant"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "learn",
+      "timestamp": "2025-07-23T13:15:50.655Z",
+      "args": [
+        "@manual://azure-ad-jwt"
+      ]
     }
   ],
-  "lastUpdated": "2025-07-23T01:26:36.308Z"
+  "lastUpdated": "2025-07-23T13:15:50.660Z"
 }

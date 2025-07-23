@@ -92,6 +92,28 @@ func (s *UserService) GetUserWithAccount(ctx context.Context, userID primitive.O
 			"as":           "account",
 		}},
 		{"$unwind": "$account"},
+		// Project only the fields we want, excluding password for security
+		{"$project": bson.M{
+			"_id":        1,
+			"accountId":  1,
+			"fullname":   1,
+			"dob":        1,
+			"email":      1,
+			"phone":      1,
+			"address":    1,
+			"avatar":     1,
+			"status":     1,
+			"createdAt":  1,
+			"updatedAt":  1,
+			"account": bson.M{
+				"_id":       "$account._id",
+				"username":  "$account.username",
+				"roles":     "$account.roles",
+				"createdAt": "$account.createdAt",
+				"updatedAt": "$account.updatedAt",
+				// Note: password field is intentionally omitted for security
+			},
+		}},
 	}
 
 	results, err := s.userRepo.Aggregate(ctx, pipeline)
@@ -231,6 +253,28 @@ func (s *UserService) GetUserByAccountID(ctx context.Context, accountID primitiv
 			"as":           "account",
 		}},
 		{"$unwind": "$account"},
+		// Project only the fields we want, excluding password for security
+		{"$project": bson.M{
+			"_id":        1,
+			"accountId":  1,
+			"fullname":   1,
+			"dob":        1,
+			"email":      1,
+			"phone":      1,
+			"address":    1,
+			"avatar":     1,
+			"status":     1,
+			"createdAt":  1,
+			"updatedAt":  1,
+			"account": bson.M{
+				"_id":       "$account._id",
+				"username":  "$account.username",
+				"roles":     "$account.roles",
+				"createdAt": "$account.createdAt",
+				"updatedAt": "$account.updatedAt",
+				// Note: password field is intentionally omitted for security
+			},
+		}},
 	}
 
 	results, err := s.userRepo.Aggregate(ctx, pipeline)
