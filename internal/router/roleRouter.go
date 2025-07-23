@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"main/internal/middleware"
 	"main/internal/model"
 	"main/internal/server/response"
 	"main/internal/service"
@@ -22,8 +23,16 @@ func NewRoleRouter() *RoleRouter {
 
 func (ar *RoleRouter) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", ar.newRole)
+	
+	// Public routes
 	r.Get("/{roleId}", ar.getRole)
+	
+	// Admin-only routes
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireRole("admin"))
+		r.Post("/", ar.newRole)
+	})
+	
 	return r
 }
 

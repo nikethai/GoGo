@@ -18,4 +18,12 @@ var (
 
 	// Profile errors
 	ErrProfileRetrieval = errors.New("error retrieving user profile")
+
+	// JWT errors
+	ErrTokenGeneration   = errors.New("failed to generate token")
+	ErrTokenValidation   = errors.New("failed to validate token")
+	ErrTokenExpired      = errors.New("token has expired")
+	ErrTokenInvalid      = errors.New("invalid token")
+	ErrMissingToken      = errors.New("missing authentication token")
+	ErrInvalidTokenFormat = errors.New("invalid token format")
 )

@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"main/internal/middleware"
 	"main/internal/model"
 	"main/internal/server/response"
 	"main/internal/service"
@@ -24,8 +25,16 @@ func NewQRouter() *QuestionRouter {
 
 func (qr QuestionRouter) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", qr.setQuestionMongo)
+	
+	// Routes accessible to all authenticated users
 	r.Get("/", qr.getAllQuestions)
+	
+	// Routes that require content creator privileges
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireRole("content_creator"))
+		r.Post("/", qr.setQuestionMongo)
+	})
+	
 	return r
 }
 

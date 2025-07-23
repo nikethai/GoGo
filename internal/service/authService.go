@@ -7,6 +7,7 @@ import (
 	"main/db"
 	customError "main/internal/error"
 	"main/internal/model"
+	"main/pkg/auth"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -44,11 +45,25 @@ func (as *AuthService) Login(username string, password string) (*model.AccountRe
 		return nil, err
 	}
 
-	// Return account response without password
+	// Extract role names for JWT token
+	roleNames := make([]string, len(account.Roles))
+	for i, role := range account.Roles {
+		roleNames[i] = role.Name
+	}
+
+	// Generate JWT token
+	token, err := auth.GenerateToken(account.ID, account.Username, roleNames)
+	if err != nil {
+		log.Printf("Token generation error for username %s: %v", username, err)
+		return nil, customError.ErrTokenGeneration
+	}
+
+	// Return account response without password but with token
 	accountResponse := &model.AccountResponse{
 		ID:       account.ID,
 		Username: account.Username,
 		Roles:    account.Roles,
+		Token:    token,
 	}
 	return accountResponse, nil
 }

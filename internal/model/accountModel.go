@@ -53,4 +53,5 @@ type AccountResponse struct {
 	ID       primitive.ObjectID `json:"id" bson:"_id,omitempty" example:"507f1f77bcf86cd799439011"`
 	Username string             `json:"username" example:"john_doe"`
 	Roles    []Role             `json:"roles"`
+	Token    string             `json:"token,omitempty" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }

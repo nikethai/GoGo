@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"main/db"
+	customMiddleware "main/internal/middleware"
 	"main/internal/router"
 	"net/http"
 
@@ -56,9 +57,9 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.CleanPath)
-	r.Use(middleware.SetHeader("Content-Type", "application/json"))
+r.Use(middleware.Recoverer)
+r.Use(middleware.CleanPath)
+r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
 	// Swagger documentation
 	r.Get("/swagger/*", httpSwagger.Handler(
@@ -68,11 +69,22 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
 	})
-	r.Mount("/questions", qRouter.Routes())
+	// Public routes (no authentication required)
 	r.Mount("/auth", authRouter.SetupRoutes())
-	r.Mount("/roles", roleRouter.Routes())
-	r.Mount("/users", userRouter.Routes())
-	r.Mount("/projects", projectRouter.Routes())
+	r.Mount("/swagger", http.StripPrefix("/swagger", http.FileServer(http.Dir("./swagger"))))
+
+	// Create a router group with JWT authentication
+	protectedRouter := chi.NewRouter()
+	protectedRouter.Use(customMiddleware.JWTAuth)
+
+	// Protected routes (authentication required)
+	protectedRouter.Mount("/questions", qRouter.Routes())
+	protectedRouter.Mount("/roles", roleRouter.Routes())
+	protectedRouter.Mount("/users", userRouter.Routes())
+	protectedRouter.Mount("/projects", projectRouter.Routes())
+
+	// Mount the protected router
+	r.Mount("/api", protectedRouter)
 
 	log.Println("Server starting on :3001")
 	log.Println("Swagger docs available at: http://localhost:3001/swagger/")

@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"main/db"
+	"main/internal/middleware"
 	"main/internal/model"
 	"main/internal/repository/mongo"
 	"main/internal/server/response"
@@ -31,8 +32,16 @@ func NewUserRouter() *UserRouter {
 
 func (ur *UserRouter) Routes() chi.Router {
 	r := chi.NewRouter()
+	
+	// Routes accessible to authenticated users
 	r.Get("/{uid}", ur.getUserByID)
-	r.Post("/", ur.newUser)
+	
+	// Routes that require admin privileges
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireRole("admin"))
+		r.Post("/", ur.newUser)
+	})
+	
 	return r
 }
 

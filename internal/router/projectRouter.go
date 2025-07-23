@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"main/internal/middleware"
 	"main/internal/model"
 	"main/internal/server/response"
 	"main/internal/service"
@@ -22,9 +23,17 @@ func NewProjectRouter() *ProjectRouter {
 
 func (pr ProjectRouter) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", pr.createProject)
+	
+	// Routes accessible to all authenticated users
 	r.Get("/", pr.getAllProjects)
 	r.Get("/{id}", pr.getProjectById)
+	
+	// Routes that require project manager privileges
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireRole("project_manager"))
+		r.Post("/", pr.createProject)
+	})
+	
 	return r
 }
 

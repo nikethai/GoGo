@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<memory>
+  <item id="mem_1753195436287_rasx1z3dh" time="2025/07/22 21:43">
+    <content>
+      Research on JWT Authentication Implementation for Gogo API:
+    
+      1. Created JWT authentication middleware in internal/middleware/auth.go with:
+      - JWTAuth middleware to validate tokens and add user info to request context
+      - RequireRole middleware to check if users have specific roles
+      - Helper functions to extract user ID, username, and roles from context
+    
+      2. Implemented core JWT functionality in pkg/auth/jwt.go:
+      - JWTClaims struct with user ID, username, and roles
+      - GenerateToken function to create JWT tokens
+      - ValidateToken function to parse and validate tokens
+      - ExtractTokenFromRequest function to extract tokens from Authorization headers
+    
+      3. Added JWT configuration in pkg/auth/config.go:
+      - SecretKey and TokenDuration loaded from environment variables
+    
+      4. Updated error.go with JWT-specific error definitions:
+      - ErrTokenGeneration, ErrTokenValidation, ErrTokenExpired
+      - ErrTokenInvalid, ErrMissingToken, ErrInvalidTokenFormat
+    
+      5. Modified authService.go to generate JWT tokens during login
+    
+      6. Updated AccountResponse model to include Token field
+    
+      7. Restructured routing in main.go:
+      - Public routes: /auth, /swagger
+      - Protected routes under /api with JWT authentication
+    
+      8. Implemented role-based access control:
+      - Admin-only routes: /roles (POST), /users (POST)
+      - Content creator routes: /questions (POST)
+      - Project manager routes: /projects (POST)
+    
+      9. Created test_auth.sh script to verify JWT authentication and RBAC
+    
+      10. Added JWT_SECRET_KEY to .env file
+    
+      11. Created README.md with documentation on authentication flow and RBAC
+    </content>
+    <tags>#其他</tags>
+  </item>
+</memory>
