@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"log"
-	"os"
-	"time"
 	"main/db"
 	customMiddleware "main/internal/middleware"
 	"main/internal/router"
 	"main/pkg/auth"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	_ "main/docs" // Import generated docs
 
@@ -46,10 +48,10 @@ func main() {
 
 	r := chi.NewRouter()
 	qRouter := router.NewQRouter()
-	
+
 	// Initialize auth router with conditional Azure AD support
 	var authRouter *router.AuthRouter
-	
+
 	// Check if Azure AD is configured
 	if os.Getenv("AZURE_AD_TENANT_ID") != "" && os.Getenv("AZURE_AD_CLIENT_ID") != "" {
 		// Initialize Azure AD services
@@ -68,7 +70,7 @@ func main() {
 				SameSite:           "Strict",
 			}
 			sessionManager := auth.NewSessionManager(sessionConfig)
-			
+
 			tokenCacheConfig := &auth.TokenCacheConfig{
 				DefaultTTL:       time.Hour,
 				MaxTTL:           24 * time.Hour,
@@ -84,7 +86,7 @@ func main() {
 				log.Fatalf("Failed to initialize token cache: %v", err)
 			}
 			oauth2Config := auth.GetOAuth2Config()
-			
+
 			if oauth2Config != nil {
 				authRouter = router.NewAuthRouterWithAzure(azureService, sessionManager, tokenCache, oauth2Config)
 				log.Println("Azure AD authentication enabled")
@@ -97,7 +99,7 @@ func main() {
 		log.Println("Azure AD not configured, using regular authentication only")
 		authRouter = router.NewAuthRouter()
 	}
-	
+
 	roleRouter := router.NewRoleRouter()
 	userRouter := router.NewUserRouter()
 	projectRouter := router.NewProjectRouter()
@@ -111,9 +113,9 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 	r.Use(middleware.Logger)
-r.Use(middleware.Recoverer)
-r.Use(middleware.CleanPath)
-r.Use(middleware.SetHeader("Content-Type", "application/json"))
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.CleanPath)
+	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
 	// Swagger documentation
 	r.Get("/swagger/*", httpSwagger.Handler(
@@ -139,14 +141,44 @@ r.Use(middleware.SetHeader("Content-Type", "application/json"))
 	// Mount the protected router
 	r.Mount("/api", protectedRouter)
 
-	log.Println("Server starting on :3001")
-	log.Println("Swagger docs available at: http://localhost:3001/swagger/")
-	http.ListenAndServe(":3001", r)
+	// Create HTTP server
+	server := &http.Server{
+		Addr:    ":3001",
+		Handler: r,
+	}
 
-	// use when about to end the app
-	defer func() {
-		if err := db.MongoClient.Disconnect(context.TODO()); err != nil {
-			log.Fatal(err)
+	// Channel to listen for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start server in a goroutine
+	go func() {
+		log.Println("Server starting on :3001")
+		log.Println("Swagger docs available at: http://localhost:3001/swagger/")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed to start: %v", err)
 		}
 	}()
+
+	// Wait for interrupt signal
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Create a context with timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Shutdown server gracefully
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	// Disconnect from MongoDB
+	if err := db.MongoClient.Disconnect(context.TODO()); err != nil {
+		log.Printf("Error disconnecting from MongoDB: %v", err)
+	} else {
+		log.Println("Disconnected from MongoDB")
+	}
+
+	log.Println("Server shutdown complete")
 }
