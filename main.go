@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"time"
 	"main/db"
 	customMiddleware "main/internal/middleware"
 	"main/internal/router"
+	"main/pkg/auth"
 	"net/http"
 
 	_ "main/docs" // Import generated docs
@@ -43,7 +46,58 @@ func main() {
 
 	r := chi.NewRouter()
 	qRouter := router.NewQRouter()
-	authRouter := router.NewAuthRouter()
+	
+	// Initialize auth router with conditional Azure AD support
+	var authRouter *router.AuthRouter
+	
+	// Check if Azure AD is configured
+	if os.Getenv("AZURE_AD_TENANT_ID") != "" && os.Getenv("AZURE_AD_CLIENT_ID") != "" {
+		// Initialize Azure AD services
+		azureService, err := auth.NewAzureADService()
+		if err != nil {
+			log.Printf("Failed to initialize Azure AD service: %v", err)
+			authRouter = router.NewAuthRouter()
+		} else {
+			// Initialize Azure AD components
+			sessionConfig := &auth.SessionConfig{
+				DefaultTTL:         24 * time.Hour,
+				MaxTTL:             7 * 24 * time.Hour,
+				CleanupInterval:    time.Hour,
+				MaxSessionsPerUser: 5,
+				SecureCookies:      true,
+				SameSite:           "Strict",
+			}
+			sessionManager := auth.NewSessionManager(sessionConfig)
+			
+			tokenCacheConfig := &auth.TokenCacheConfig{
+				DefaultTTL:       time.Hour,
+				MaxTTL:           24 * time.Hour,
+				CleanupInterval:  15 * time.Minute,
+				MaxCacheSize:     1000,
+				EncryptTokens:    true,
+				CompressionLevel: 6,
+				PersistToDisk:    false,
+				CacheFilePath:    "/tmp/token_cache.json",
+			}
+			tokenCache, err := auth.NewTokenCache(tokenCacheConfig)
+			if err != nil {
+				log.Fatalf("Failed to initialize token cache: %v", err)
+			}
+			oauth2Config := auth.GetOAuth2Config()
+			
+			if oauth2Config != nil {
+				authRouter = router.NewAuthRouterWithAzure(azureService, sessionManager, tokenCache, oauth2Config)
+				log.Println("Azure AD authentication enabled")
+			} else {
+				log.Println("Azure AD OAuth2 config not found, using regular auth router")
+				authRouter = router.NewAuthRouter()
+			}
+		}
+	} else {
+		log.Println("Azure AD not configured, using regular authentication only")
+		authRouter = router.NewAuthRouter()
+	}
+	
 	roleRouter := router.NewRoleRouter()
 	userRouter := router.NewUserRouter()
 	projectRouter := router.NewProjectRouter()
