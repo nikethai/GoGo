@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"main/db"
 	"main/internal/config"
@@ -453,6 +454,11 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("===== Error retrieving user profile:", usrErr.Error(), "=====")
 		response.InternalServerError(w, customError.ErrProfileRetrieval.Error()+": "+usrErr.Error())
 		return
+	}
+
+	// Ensure the token is included in the user response
+	if accountData, ok := userWithAccount["account"].(bson.M); ok {
+		accountData["token"] = account.Token
 	}
 
 	fmt.Println("===== Login successful for username:", authReq.Username, "=====")

@@ -37,11 +37,11 @@ function api_request() {
 
 # Test 1: Register a new user with admin role
 echo -e "${BLUE}Test 1: Register a new admin user${NC}"
-REGISTER_DATA='{"username":"admin","password":"admin123","roles":["admin"]}'
+REGISTER_DATA='{"username":"admin","password":"admin123","email":"admin@example.com","roles":[{"name":"admin"}]}'
 REGISTER_RESPONSE=$(api_request "POST" "/auth/register" "$REGISTER_DATA")
 echo "Response: $REGISTER_RESPONSE"
 
-if [[ "$REGISTER_RESPONSE" == *"Account created successfully"* ]]; then
+if [[ "$REGISTER_RESPONSE" == *"Account registered successfully"* ]]; then
     echo -e "${GREEN}✓ Admin user registration successful${NC}\n"
 else
     echo -e "${RED}✗ Admin user registration failed${NC}\n"
@@ -88,11 +88,11 @@ fi
 
 # Test 5: Register a user with content_creator role
 echo -e "${BLUE}Test 5: Register a content creator user${NC}"
-REGISTER_DATA='{"username":"creator","password":"creator123","roles":["content_creator"]}'
+REGISTER_DATA='{"username":"creator","password":"creator123","email":"creator@example.com","roles":[{"name":"content_creator"}]}'
 REGISTER_RESPONSE=$(api_request "POST" "/auth/register" "$REGISTER_DATA")
 echo "Response: $REGISTER_RESPONSE"
 
-if [[ "$REGISTER_RESPONSE" == *"Account created successfully"* ]]; then
+if [[ "$REGISTER_RESPONSE" == *"Account registered successfully"* ]]; then
     echo -e "${GREEN}✓ Content creator user registration successful${NC}\n"
 else
     echo -e "${RED}✗ Content creator user registration failed${NC}\n"
@@ -132,7 +132,7 @@ ROLE_DATA='{"name":"test_role","description":"Test role"}'
 ROLE_RESPONSE=$(api_request "POST" "/api/roles" "$ROLE_DATA" "Bearer $CREATOR_TOKEN")
 echo "Response: $ROLE_RESPONSE"
 
-if [[ "$ROLE_RESPONSE" == *"Unauthorized"* ]]; then
+if [[ "$ROLE_RESPONSE" == *"Forbidden"* ]]; then
     echo -e "${GREEN}✓ Role creation correctly failed due to insufficient permissions${NC}\n"
 else
     echo -e "${RED}✗ Role creation unexpectedly succeeded or failed for the wrong reason${NC}\n"
