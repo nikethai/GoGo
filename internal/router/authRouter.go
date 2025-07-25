@@ -447,7 +447,7 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 		// If user not found, return just the account (maintaining old behavior)
 		if usrErr == customError.ErrUserNotFound {
 			fmt.Println("===== User not found for account ID:", account.ID.Hex(), "=====")
-			response.Success(w, http.StatusOK, account, "Login successful")
+			response.Success(w, http.StatusOK, map[string]interface{}{"account": account, "access_token": account.Token}, "Login successful")
 			return
 		}
 		fmt.Println("===== Error retrieving user profile:", usrErr.Error(), "=====")
@@ -456,7 +456,7 @@ func (ar *AuthRouter) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("===== Login successful for username:", authReq.Username, "=====")
-	response.Success(w, http.StatusOK, userWithAccount, "Login successful")
+	response.Success(w, http.StatusOK, map[string]interface{}{"user": userWithAccount, "access_token": account.Token}, "Login successful")
 }
 
 // register godoc

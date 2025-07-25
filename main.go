@@ -6,6 +6,7 @@ import (
 	"main/db"
 	customMiddleware "main/internal/middleware"
 	"main/internal/router"
+	profileRouter "main/internal/profile/router"
 	"main/pkg/auth"
 	"net/http"
 	"os"
@@ -103,6 +104,7 @@ func main() {
 	roleRouter := router.NewRoleRouter()
 	userRouter := router.NewUserRouter()
 	projectRouter := router.NewProjectRouter()
+	profileRouterInstance := profileRouter.NewProfileRouter()
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:*"},
@@ -137,6 +139,7 @@ func main() {
 	protectedRouter.Mount("/roles", roleRouter.Routes())
 	protectedRouter.Mount("/users", userRouter.Routes())
 	protectedRouter.Mount("/projects", projectRouter.Routes())
+	protectedRouter.Mount("/profile", profileRouterInstance.Routes())
 
 	// Mount the protected router
 	r.Mount("/api", protectedRouter)
