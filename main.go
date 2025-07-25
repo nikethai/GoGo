@@ -35,7 +35,7 @@ import (
 // @license.url https://opensource.org/licenses/MIT
 
 // @host localhost:3001
-// @BasePath /
+// @BasePath /api/v1
 // @schemes http https
 
 // @securityDefinitions.apikey BearerAuth
@@ -120,29 +120,35 @@ func main() {
 	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
 	// Swagger documentation
-	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:3001/swagger/doc.json"),
-	))
+	// Group all API routes under /api/v1
+	r.Route("/api/v1", func(r chi.Router) {
+		// Swagger documentation
+		r.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("http://localhost:3001/api/v1/swagger/doc.json"),
+		))
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
+		// Welcome route
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("welcome to Gogo API v1"))
+		})
+
+		// Public routes (no authentication required)
+		r.Mount("/auth", authRouter.SetupRoutes())
+
+		// Create a router group with hybrid authentication (supports both JWT and Azure AD)
+		protectedRouter := chi.NewRouter()
+		protectedRouter.Use(customMiddleware.HybridAuth)
+
+		// Protected routes (authentication required)
+		protectedRouter.Mount("/questions", qRouter.Routes())
+		protectedRouter.Mount("/roles", roleRouter.Routes())
+		protectedRouter.Mount("/users", userRouter.Routes())
+		protectedRouter.Mount("/projects", projectRouter.Routes())
+		protectedRouter.Mount("/profile", profileRouterInstance.Routes())
+
+		// Mount the protected router
+		r.Mount("/", protectedRouter)
 	})
-	// Public routes (no authentication required)
-	r.Mount("/auth", authRouter.SetupRoutes())
-
-	// Create a router group with hybrid authentication (supports both JWT and Azure AD)
-	protectedRouter := chi.NewRouter()
-	protectedRouter.Use(customMiddleware.HybridAuth)
-
-	// Protected routes (authentication required)
-	protectedRouter.Mount("/questions", qRouter.Routes())
-	protectedRouter.Mount("/roles", roleRouter.Routes())
-	protectedRouter.Mount("/users", userRouter.Routes())
-	protectedRouter.Mount("/projects", projectRouter.Routes())
-	protectedRouter.Mount("/profile", profileRouterInstance.Routes())
-
-	// Mount the protected router
-	r.Mount("/api", protectedRouter)
 
 	// Create HTTP server
 	server := &http.Server{
