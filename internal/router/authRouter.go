@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	firebaseAuth "firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
 
 	"main/db"
@@ -19,23 +20,27 @@ import (
 	mongorepo "main/internal/repository/mongo"
 	"main/internal/server/response"
 	"main/internal/service"
-	"main/pkg/auth"
+	mainAuth "main/pkg/auth"
 )
 
-// AuthRouter handles both traditional and Azure AD authentication routes
+// AuthRouter handles traditional, Azure AD, and Firebase authentication routes
 type AuthRouter struct {
 	// Traditional auth services
 	authService *service.AuthService
 	userService *service.UserService
 	
 	// Azure AD services (optional)
-	oauth2Service   auth.AzureADService
-	sessionManager  auth.SessionManager
-	tokenCache      auth.TokenCache
-	config          *auth.OAuth2Config
+	oauth2Service   mainAuth.AzureADService
+	sessionManager  mainAuth.SessionManager
+	tokenCache      mainAuth.TokenCache
+	config          *mainAuth.OAuth2Config
+	
+	// Firebase services (optional)
+	firebaseService *mainAuth.FirebaseService
 	
 	// Feature flags
-	azureEnabled bool
+	azureEnabled    bool
+	firebaseEnabled bool
 }
 
 // NewAuthRouter creates a new authentication router with traditional auth
@@ -45,35 +50,77 @@ func NewAuthRouter() *AuthRouter {
 	accountRepo := mongorepo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
 
 	return &AuthRouter{
-		authService: service.NewAuthService(),
-		userService: service.NewUserService(userRepo, accountRepo),
-		azureEnabled: false,
+		authService:     service.NewAuthService(),
+		userService:     service.NewUserService(userRepo, accountRepo),
+		azureEnabled:    false,
+		firebaseEnabled: false,
 	}
 }
 
 // NewAuthRouterWithAzure creates a new authentication router with Azure AD support
 func NewAuthRouterWithAzure(
-	oauth2Service auth.AzureADService,
-	sessionManager auth.SessionManager,
-	tokenCache auth.TokenCache,
-	oauth2Config *auth.OAuth2Config,
+	oauth2Service mainAuth.AzureADService,
+	sessionManager mainAuth.SessionManager,
+	tokenCache mainAuth.TokenCache,
+	oauth2Config *mainAuth.OAuth2Config,
 ) *AuthRouter {
 	// Initialize repositories
 	userRepo := mongorepo.NewMongoRepository[*model.User](db.MongoDatabase, config.UserCollection)
 	accountRepo := mongorepo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
 
 	return &AuthRouter{
-		authService:    service.NewAuthService(),
-		userService:    service.NewUserService(userRepo, accountRepo),
-		oauth2Service:  oauth2Service,
-		sessionManager: sessionManager,
-		tokenCache:     tokenCache,
-		config:         oauth2Config,
-		azureEnabled:   true,
+		authService:     service.NewAuthService(),
+		userService:     service.NewUserService(userRepo, accountRepo),
+		oauth2Service:   oauth2Service,
+		sessionManager:  sessionManager,
+		tokenCache:      tokenCache,
+		config:          oauth2Config,
+		azureEnabled:    true,
+		firebaseEnabled: false,
 	}
 }
 
-// SetupRoutes sets up authentication routes for both traditional and Azure AD auth
+// NewAuthRouterWithFirebase creates a new authentication router with Firebase support
+func NewAuthRouterWithFirebase(firebaseService *mainAuth.FirebaseService) *AuthRouter {
+	// Initialize repositories
+	userRepo := mongorepo.NewMongoRepository[*model.User](db.MongoDatabase, config.UserCollection)
+	accountRepo := mongorepo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
+
+	return &AuthRouter{
+		authService:     service.NewAuthService(),
+		userService:     service.NewUserService(userRepo, accountRepo),
+		firebaseService: firebaseService,
+		azureEnabled:    false,
+		firebaseEnabled: true,
+	}
+}
+
+// NewAuthRouterWithAll creates a new authentication router with both Azure AD and Firebase support
+func NewAuthRouterWithAll(
+	oauth2Service mainAuth.AzureADService,
+	sessionManager mainAuth.SessionManager,
+	tokenCache mainAuth.TokenCache,
+	oauth2Config *mainAuth.OAuth2Config,
+	firebaseService *mainAuth.FirebaseService,
+) *AuthRouter {
+	// Initialize repositories
+	userRepo := mongorepo.NewMongoRepository[*model.User](db.MongoDatabase, config.UserCollection)
+	accountRepo := mongorepo.NewMongoRepository[*model.Account](db.MongoDatabase, config.AccountCollection)
+
+	return &AuthRouter{
+		authService:     service.NewAuthService(),
+		userService:     service.NewUserService(userRepo, accountRepo),
+		oauth2Service:   oauth2Service,
+		sessionManager:  sessionManager,
+		tokenCache:      tokenCache,
+		config:          oauth2Config,
+		firebaseService: firebaseService,
+		azureEnabled:    true,
+		firebaseEnabled: true,
+	}
+}
+
+// SetupRoutes sets up authentication routes for traditional, Azure AD, and Firebase auth
 func (ar *AuthRouter) SetupRoutes() chi.Router {
 	r := chi.NewRouter()
 	
@@ -90,6 +137,16 @@ func (ar *AuthRouter) SetupRoutes() chi.Router {
 		r.Post("/azure/refresh", ar.handleTokenRefresh)
 	}
 	
+	// Firebase authentication routes (if enabled)
+	if ar.firebaseEnabled {
+		r.Post("/firebase/verify", ar.handleFirebaseTokenVerification)
+		r.Post("/firebase/register", ar.handleFirebaseUserRegistration)
+		r.Get("/firebase/profile", ar.handleFirebaseProfile)
+		r.Post("/firebase/claims", ar.handleFirebaseCustomClaims)
+		r.Delete("/firebase/user/{uid}", ar.handleFirebaseUserDeletion)
+		r.Put("/firebase/user/{uid}", ar.handleFirebaseUserUpdate)
+	}
+	
 	return r
 }
 
@@ -103,14 +160,14 @@ func (ar *AuthRouter) handleAzureLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate PKCE challenge
-	pkceChallenge, err := auth.GeneratePKCEChallenge()
+	pkceChallenge, err := mainAuth.GeneratePKCEChallenge()
 	if err != nil {
 		http.Error(w, "Failed to generate PKCE challenge", http.StatusInternalServerError)
 		return
 	}
 
 	// Generate state parameter
-	state, err := auth.GenerateAuthState()
+	state, err := mainAuth.GenerateAuthState()
 	if err != nil {
 		http.Error(w, "Failed to generate state parameter", http.StatusInternalServerError)
 		return
@@ -133,7 +190,7 @@ func (ar *AuthRouter) handleAzureLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build authorization URL
-	authURL := auth.BuildAuthorizationURL(ar.config, state, pkceChallenge)
+	authURL := mainAuth.BuildAuthorizationURL(ar.config, state, pkceChallenge)
 
 	// Return authorization URL for client-side redirect
 	response := map[string]interface{}{
@@ -187,14 +244,14 @@ func (ar *AuthRouter) handleAzureCallback(w http.ResponseWriter, r *http.Request
 	}
 
 	// Validate state parameter
-	if err := auth.ValidateState(state, sessionData["state"].(string)); err != nil {
+	if err := mainAuth.ValidateState(state, sessionData["state"].(string)); err != nil {
 		http.Error(w, "State validation failed", http.StatusBadRequest)
 		return
 	}
 
 	// Exchange authorization code for tokens
 	pkceVerifier := sessionData["pkce_verifier"].(string)
-	tokenResponse, err := auth.ExchangeCodeForToken(ar.config, code, pkceVerifier)
+	tokenResponse, err := mainAuth.ExchangeCodeForToken(ar.config, code, pkceVerifier)
 	if err != nil {
 		log.Printf("Token exchange failed: %v", err)
 		http.Error(w, "Failed to exchange code for tokens", http.StatusInternalServerError)
@@ -202,7 +259,7 @@ func (ar *AuthRouter) handleAzureCallback(w http.ResponseWriter, r *http.Request
 	}
 
 	// Extract user information from ID token
-	userInfo, err := auth.ExtractUserInfoFromIDToken(tokenResponse.IDToken)
+	userInfo, err := mainAuth.ExtractUserInfoFromIDToken(tokenResponse.IDToken)
 	if err != nil {
 		log.Printf("Failed to extract user info: %v", err)
 		http.Error(w, "Failed to extract user information", http.StatusInternalServerError)
@@ -349,7 +406,7 @@ func (ar *AuthRouter) handleTokenRefresh(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Refresh tokens using OAuth2 service
-	tokenResponse, err := auth.RefreshAccessToken(ar.config, request.RefreshToken)
+	tokenResponse, err := mainAuth.RefreshAccessToken(ar.config, request.RefreshToken)
 	if err != nil {
 		log.Printf("Token refresh failed: %v", err)
 		http.Error(w, "Failed to refresh tokens", http.StatusUnauthorized)
@@ -498,4 +555,248 @@ func (ar *AuthRouter) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Created(w, accountResponse, "Account registered successfully")
+}
+
+// Firebase Authentication Handlers
+
+// handleFirebaseTokenVerification verifies Firebase ID tokens
+func (ar *AuthRouter) handleFirebaseTokenVerification(w http.ResponseWriter, r *http.Request) {
+	if !ar.firebaseEnabled {
+		http.Error(w, "Firebase authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	var request struct {
+		IDToken string `json:"id_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	if request.IDToken == "" {
+		http.Error(w, "ID token is required", http.StatusBadRequest)
+		return
+	}
+
+	// Verify the Firebase ID token
+	claims, err := ar.firebaseService.ValidateIDToken(context.Background(), request.IDToken)
+	if err != nil {
+		http.Error(w, "Invalid ID token: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response := map[string]interface{}{
+		"valid":   true,
+		"uid":     claims.UserID,
+		"email":   claims.Email,
+		"claims":  claims.Custom,
+		"expires": claims.Expiry,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleFirebaseUserRegistration creates a new Firebase user
+func (ar *AuthRouter) handleFirebaseUserRegistration(w http.ResponseWriter, r *http.Request) {
+	if !ar.firebaseEnabled {
+		http.Error(w, "Firebase authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	var request struct {
+		Email    string            `json:"email"`
+		Password string            `json:"password"`
+		Claims   map[string]interface{} `json:"custom_claims,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	if request.Email == "" || request.Password == "" {
+		http.Error(w, "Email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	// Create Firebase user
+	user, err := ar.firebaseService.CreateUser(context.Background(), request.Email, request.Password, "")
+	if err != nil {
+		http.Error(w, "Failed to create user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set custom claims if provided
+	if request.Claims != nil {
+		if err := ar.firebaseService.SetCustomClaims(context.Background(), user.UID, request.Claims); err != nil {
+			log.Printf("Warning: Failed to set custom claims for user %s: %v", user.UID, err)
+		}
+	}
+
+	response := map[string]interface{}{
+		"uid":   user.UID,
+		"email": user.Email,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleFirebaseProfile retrieves Firebase user profile
+func (ar *AuthRouter) handleFirebaseProfile(w http.ResponseWriter, r *http.Request) {
+	if !ar.firebaseEnabled {
+		http.Error(w, "Firebase authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	// Extract UID from query parameter or header
+	uid := r.URL.Query().Get("uid")
+	if uid == "" {
+		uid = r.Header.Get("X-Firebase-UID")
+	}
+
+	if uid == "" {
+		http.Error(w, "User UID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get user from Firebase
+	user, err := ar.firebaseService.GetUser(context.Background(), uid)
+	if err != nil {
+		http.Error(w, "User not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	response := map[string]interface{}{
+		"uid":           user.UID,
+		"email":         user.Email,
+		"email_verified": user.EmailVerified,
+		"disabled":      user.Disabled,
+		"custom_claims": user.CustomClaims,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleFirebaseCustomClaims sets custom claims for a Firebase user
+func (ar *AuthRouter) handleFirebaseCustomClaims(w http.ResponseWriter, r *http.Request) {
+	if !ar.firebaseEnabled {
+		http.Error(w, "Firebase authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	var request struct {
+		UID    string                 `json:"uid"`
+		Claims map[string]interface{} `json:"custom_claims"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	if request.UID == "" {
+		http.Error(w, "User UID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Set custom claims
+	if err := ar.firebaseService.SetCustomClaims(context.Background(), request.UID, request.Claims); err != nil {
+		http.Error(w, "Failed to set custom claims: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": "Custom claims updated successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleFirebaseUserDeletion deletes a Firebase user
+func (ar *AuthRouter) handleFirebaseUserDeletion(w http.ResponseWriter, r *http.Request) {
+	if !ar.firebaseEnabled {
+		http.Error(w, "Firebase authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	uid := chi.URLParam(r, "uid")
+	if uid == "" {
+		http.Error(w, "User UID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Delete user from Firebase
+	if err := ar.firebaseService.DeleteUser(context.Background(), uid); err != nil {
+		http.Error(w, "Failed to delete user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": "User deleted successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleFirebaseUserUpdate updates a Firebase user
+func (ar *AuthRouter) handleFirebaseUserUpdate(w http.ResponseWriter, r *http.Request) {
+	if !ar.firebaseEnabled {
+		http.Error(w, "Firebase authentication not enabled", http.StatusNotImplemented)
+		return
+	}
+
+	uid := chi.URLParam(r, "uid")
+	if uid == "" {
+		http.Error(w, "User UID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Email    *string `json:"email,omitempty"`
+		Password *string `json:"password,omitempty"`
+		Disabled *bool   `json:"disabled,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	// Create update parameters
+	params := &firebaseAuth.UserToUpdate{}
+	if request.Email != nil {
+		params = params.Email(*request.Email)
+	}
+	if request.Password != nil {
+		params = params.Password(*request.Password)
+	}
+	if request.Disabled != nil {
+		params = params.Disabled(*request.Disabled)
+	}
+
+	// Update user in Firebase
+	user, err := ar.firebaseService.UpdateUser(context.Background(), uid, params)
+	if err != nil {
+		http.Error(w, "Failed to update user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"uid":           user.UID,
+		"email":         user.Email,
+		"email_verified": user.EmailVerified,
+		"disabled":      user.Disabled,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
